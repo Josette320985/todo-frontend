@@ -5,6 +5,8 @@ import api from '../api/client';
 export default function TaskList() {
   const [tasks, setTasks] = useState([]);
   const [title, setTitle] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [editTitle, setEditTitle] = useState('');
 
   const loadTasks = async () => {
     try {
@@ -35,6 +37,18 @@ export default function TaskList() {
     loadTasks();
   };
 
+  const updateTaskTitle = async (id) => {
+    if (!editTitle.trim()) return;
+    try {
+      await api.put(`/v1/tasks/${id}`, { title: editTitle });
+      setEditingId(null);
+      setEditTitle('');
+      loadTasks();
+    } catch (error) {
+      console.error("Error actualizando tarea", error);
+    }
+  };
+
   return (
     <Card className="mx-auto mt-5 shadow-sm" style={{ maxWidth: '600px' }}>
       <Card.Body>
@@ -47,15 +61,42 @@ export default function TaskList() {
         </Form>
         <ListGroup>
           {tasks.length === 0 && <p className="text-muted text-center">No hay tareas pendientes.</p>}
+          
           {tasks.map((task) => (
             <ListGroup.Item key={task.id} className="d-flex justify-content-between align-items-center">
-              <Form.Check
-                type="checkbox"
-                checked={task.completed}
-                onChange={() => toggleTask(task)}
-                label={<span style={{ textDecoration: task.completed ? 'line-through' : 'none' }}>{task.title}</span>}
-              />
-              <Button variant="outline-danger" size="sm" onClick={() => deleteTask(task.id)}>Eliminar</Button>
+              {editingId === task.id ? (
+                <div className="d-flex w-100 gap-2 align-items-center">
+                  <Form.Control
+                    size="sm"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                  />
+                  <Button variant="success" size="sm" onClick={() => updateTaskTitle(task.id)}>Guardar</Button>
+                  <Button variant="secondary" size="sm" onClick={() => setEditingId(null)}>Cancelar</Button>
+                </div>
+              ) : (
+                <>
+                  <Form.Check
+                    type="checkbox"
+                    checked={task.completed}
+                    onChange={() => toggleTask(task)}
+                    label={<span style={{ textDecoration: task.completed ? 'line-through' : 'none' }}>{task.title}</span>}
+                  />
+                  <div className="d-flex gap-2">
+                    <Button 
+                      variant="outline-warning" 
+                      size="sm" 
+                      onClick={() => {
+                        setEditingId(task.id);
+                        setEditTitle(task.title);
+                      }}
+                    >
+                      Modificar
+                    </Button>
+                    <Button variant="outline-danger" size="sm" onClick={() => deleteTask(task.id)}>Eliminar</Button>
+                  </div>
+                </>
+              )}
             </ListGroup.Item>
           ))}
         </ListGroup>
