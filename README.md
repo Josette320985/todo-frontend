@@ -1,93 +1,93 @@
-# To-Do Frontend — Equipo 1 (Build It)
+# To-Do Frontend — Team 1 (Build It)
 
-Interfaz de usuario para la aplicación To-Do List, construida con **React, Vite y Bootstrap**.
+User interface for the To-Do List application, built with **React, Vite, and Bootstrap**.
 
-> **Nota:** Para levantar la aplicación completa (Frontend + Backend) mediante Docker, consulta las instrucciones de despliegue en el archivo `README.md` del repositorio **`todo-backend`**.
+> **Note:** To run the complete application (Frontend + Backend) using Docker, refer to the deployment instructions in the `README.md` file of the **`todo-backend`** repository.
 
 ---
 
-## Ejecución en modo desarrollo (Local)
+## Running in Development Mode (Local)
 
-Si necesitas modificar el código de la interfaz y visualizar los cambios en tiempo real sin utilizar Docker, sigue estos pasos:
+If you need to modify the frontend code and preview changes in real time without using Docker, follow these steps:
 
-**1. Entra a la carpeta del frontend:**
+**1. Navigate to the frontend directory:**
 
 ```bash
 cd todo-frontend
 ```
 
-**2. Instala las dependencias (solo la primera vez):**
+**2. Install dependencies (first time only):**
 
 ```bash
 npm install
 ```
 
-**3. Inicia el servidor de desarrollo de Vite:**
+**3. Start the Vite development server:**
 
 ```bash
 npm run dev
 ```
 
-*Nota: Asegúrate de tener el backend ejecutándose en Docker para que las peticiones a la API funcionen correctamente.*
+*Note: Make sure the backend is running in Docker so that API requests work correctly.*
 
 ---
 
-## Estructura y explicación de archivos
+## Project Structure and File Descriptions
 
-### Archivos en la raíz (Configuración y despliegue)
+### Root Files (Configuration and Deployment)
 
-| Archivo | Descripción |
+| File | Description |
 |---|---|
-| `Dockerfile` | Archivo multi-etapa. Primero utiliza `node:22-alpine` para instalar dependencias y compilar React mediante `npm run build`. Después, toma la carpeta estática generada (`dist/`) y la sirve utilizando un servidor `nginx:alpine`, haciendo que la imagen final sea ligera. |
-| `nginx.conf` | Configuración del servidor Nginx. Sirve los archivos estáticos de React con fallback a `index.html` (necesario para el funcionamiento de las Single Page Applications). También actúa como **Proxy Inverso**, interceptando las peticiones que comienzan con `/api/` y redirigiéndolas internamente al contenedor de FastAPI (`http://backend:8000/api/`). Esto evita problemas de CORS. |
-| `package.json` | Contiene las dependencias del proyecto (`react`, `axios`, `bootstrap`, `react-bootstrap`) y los scripts necesarios para su ejecución y construcción. |
-| `index.html` | Archivo HTML principal de la aplicación. Es el documento que se renderiza en el navegador y donde React inyecta todo el contenido dinámico. |
+| `Dockerfile` | Multi-stage Dockerfile. First, it uses `node:22-alpine` to install dependencies and build the React application using `npm run build`. Then, it copies the generated static files (`dist/`) into an Nginx image to serve the application while keeping the final image lightweight. |
+| `nginx.conf` | Nginx server configuration. Serves the React static files with a fallback to `index.html`, which is necessary for Single Page Applications (SPAs). It also acts as a **reverse proxy**, intercepting requests beginning with `/api/` and forwarding them internally to the FastAPI container (`http://backend:8000/api/`). This helps avoid CORS issues. |
+| `package.json` | Defines the project dependencies (`react`, `axios`, `bootstrap`, `react-bootstrap`) and the scripts required to run and build the application. |
+| `index.html` | Main HTML document of the application. It is loaded by the browser and provides the root element where React renders dynamic content. |
 
-### Carpeta `src/` (Código fuente React)
+### `src/` Directory (React Source Code)
 
-- `main.jsx`: Punto de entrada de la aplicación. Importa la hoja de estilos global de **Bootstrap** (`bootstrap/dist/css/bootstrap.min.css`) y monta el componente `<App />` en el DOM.
+- `main.jsx`: Application entry point. Imports the global **Bootstrap** stylesheet (`bootstrap/dist/css/bootstrap.min.css`) and mounts the `<App />` component into the DOM.
 
-- `App.jsx`: Componente principal y controlador de estado. Consulta el `localStorage` para verificar si el usuario tiene un token JWT (sesión activa). Dependiendo de ello, decide si muestra el componente `<LoginForm />` o `<TaskList />`. También incluye la barra de navegación superior y el botón de "Cerrar Sesión".
+- `App.jsx`: Main application component and authentication state controller. Checks `localStorage` for the presence of a JWT token. Depending on whether a token exists, it renders either `<LoginForm />` or `<TaskList />`. It also includes the navigation bar and the logout button.
 
-#### `src/api/` (Comunicación con el Backend)
+#### `src/api/` (Backend Communication)
 
-- `client.js`: Configura **Axios** y establece que todas las peticiones se realicen a través de la ruta relativa `/api`. Incluye un **Interceptor de peticiones** que busca el token JWT almacenado en `localStorage` y lo adjunta automáticamente en las cabeceras HTTP:
+- `client.js`: Configures **Axios** with the relative base URL `/api`. Includes a **request interceptor** that retrieves the JWT token from `localStorage` and automatically attaches it to outgoing HTTP request headers:
 
 ```http
 Authorization: Bearer <token>
 ```
 
-Esto permite autenticar las peticiones antes de enviarlas al backend.
+This allows the backend to receive the authentication token with API requests.
 
-#### `src/components/` (Componentes de la interfaz de usuario)
+#### `src/components/` (User Interface Components)
 
-- `LoginForm.jsx`: Formulario de inicio de sesión y registro. Utiliza componentes de `react-bootstrap` (Card, Form, Button y Alert). Captura los errores enviados por el backend y los muestra en pantalla. Cuando el usuario inicia sesión correctamente, guarda el token JWT y notifica a `App.jsx` para actualizar la vista.
+- `LoginForm.jsx`: Login and registration form. Uses `react-bootstrap` components (`Card`, `Form`, `Button`, and `Alert`). Captures errors returned by the backend and displays them in the interface. After successful login, it stores the JWT token and notifies `App.jsx` to update the displayed view.
 
-- `TaskList.jsx`: Componente principal encargado de las operaciones CRUD de tareas.
+- `TaskList.jsx`: Main component responsible for task CRUD (Create, Read, Update, Delete) operations.
 
-  - **GET:** Realiza una petición al backend cuando se monta el componente para cargar las tareas del usuario autenticado.
-  - **POST:** Incluye un formulario rápido para crear nuevas tareas.
-  - **PUT:** Utiliza casillas de verificación (checkboxes) para marcar las tareas como completadas.
-  - **DELETE:** Incluye botones para eliminar las tareas seleccionadas.
-
----
-
-## Tecnologías utilizadas
-
-- **React:** Biblioteca para construir la interfaz de usuario.
-- **Vite:** Herramienta de desarrollo y construcción del proyecto.
-- **Bootstrap:** Framework CSS para el diseño y los componentes visuales.
-- **React Bootstrap:** Componentes de Bootstrap adaptados para React.
-- **Axios:** Biblioteca para realizar peticiones HTTP al backend.
-- **Nginx:** Servidor web y proxy inverso para la comunicación con el backend.
-- **Docker:** Contenerización de la aplicación.
+  - **GET:** Sends a request to the backend when the component mounts to retrieve the authenticated user's tasks.
+  - **POST:** Provides a form for creating new tasks.
+  - **PUT:** Uses checkboxes to mark tasks as completed or pending. It also allows users to modify existing task titles.
+  - **DELETE:** Provides buttons for deleting selected tasks.
 
 ---
 
-## 👥 Equipo de desarrollo
+## Technologies Used
+
+- **React:** JavaScript library for building the user interface.
+- **Vite:** Development server and build tool.
+- **Bootstrap:** CSS framework for layout and visual styling.
+- **React Bootstrap:** Bootstrap components adapted for React.
+- **Axios:** HTTP client library for communicating with the backend.
+- **Nginx:** Web server and reverse proxy for backend communication.
+- **Docker:** Containerization platform for packaging and deploying the application.
+
+---
+
+## 👥 Development Team
 
 - **Elisa Aguilar Valadez**
 - **Josette Nayla Hernández Cazarín**
-- **Erika Reyes González** 
-- **Glafira Rodríguez Esparza** 
+- **Erika Reyes González**
+- **Glafira Rodríguez Esparza**
 - **Janette Valenzuela González**
