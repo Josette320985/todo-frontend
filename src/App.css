@@ -1,3 +1,5 @@
+
+/* Counter component with hover and keyboard focus states. */
 .counter {
   font-size: 16px;
   padding: 5px 10px;
@@ -17,6 +19,7 @@
   }
 }
 
+/* Hero section with layered and transformed visual elements. */
 .hero {
   position: relative;
 
@@ -56,6 +59,7 @@
   }
 }
 
+/* Main centered layout with responsive spacing adjustments. */
 #center {
   display: flex;
   flex-direction: column;
@@ -70,6 +74,7 @@
   }
 }
 
+/* Next-steps section with a responsive two-column layout. */
 #next-steps {
   display: flex;
   border-top: 1px solid var(--border);
@@ -95,6 +100,7 @@
   }
 }
 
+/* Documentation panel borders adapt to smaller screens. */
 #docs {
   border-right: 1px solid var(--border);
 
@@ -104,6 +110,7 @@
   }
 }
 
+/* Navigation links and icons within the next-steps section. */
 #next-steps ul {
   list-style: none;
   padding: 0;
@@ -133,6 +140,7 @@
     .button-icon {
       height: 18px;
       width: 18px;
+      width: 18px;
     }
   }
 
@@ -153,6 +161,7 @@
   }
 }
 
+/* Vertical spacer with responsive height adjustments. */
 #spacer {
   height: 88px;
   border-top: 1px solid var(--border);
@@ -161,6 +170,7 @@
   }
 }
 
+/* Decorative triangular markers positioned at both ends. */
 .ticks {
   position: relative;
   width: 100%;
