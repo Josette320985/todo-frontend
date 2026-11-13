@@ -1,13 +1,53 @@
+
 import { useState } from 'react';
 import { Form, Button, Alert, Card } from 'react-bootstrap';
 import api from '../api/client';
 
+/**
+ * Renders the authentication form for user login and registration.
+ *
+ * Supports two modes:
+ * - Login: authenticates an existing user.
+ * - Registration: creates a new account and automatically logs in.
+ *
+ * After successful authentication, stores the access token in
+ * localStorage and notifies the parent component through onLogin().
+ *
+ * @component
+ * @param {Object} props - Component properties.
+ * @param {Function} props.onLogin - Callback executed after
+ *   successful authentication. Receives no arguments.
+ * @returns {JSX.Element} A Bootstrap card containing the
+ *   authentication form and conditional error messages.
+ */
 export default function LoginForm({ onLogin }) {
+  // Determines whether the form is in login or registration mode.
   const [isRegister, setIsRegister] = useState(false);
+
+  // Controlled form inputs. Email is submitted as "username" during login.
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  // Stores authentication errors displayed to the user.
   const [error, setError] = useState('');
 
+  /**
+   * Handles login and registration form submissions.
+   *
+   * Prevents default form submission and clears previous errors.
+   * In registration mode, creates a new account before attempting login.
+   *
+   * Sends login credentials as URL-encoded form data using the
+   * "username" and "password" fields.
+   *
+   * On success, saves the access token in localStorage and calls
+   * onLogin(). On failure, displays the API error message or a
+   * fallback connection error.
+   *
+   * @async
+   * @param {React.FormEvent<HTMLFormElement>} e - Form submission event.
+   * @returns {Promise<void>}
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
