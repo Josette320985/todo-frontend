@@ -1,9 +1,7 @@
-
 import { useEffect, useState } from 'react';
 import { ListGroup, Button, Form, InputGroup, Card, Row, Col, Alert } from 'react-bootstrap';
 import api from '../api/client';
 
-feature/task-dates
 // Convierte "2026-11-12" en "12/11/2026" sin usar Date
 // (evita el desfase de un día por zona horaria).
 function formatDate(value) {
@@ -19,7 +17,6 @@ function validateDates(start, end) {
   }
   return '';
 }
-
 
 /**
  * Renders and manages the authenticated user's task list.
@@ -38,11 +35,9 @@ function validateDates(start, end) {
  * @returns {JSX.Element} A Bootstrap card containing the task
  *   creation form, task list, and management controls.
  */
-main
 export default function TaskList() {
   // Stores the tasks retrieved from the backend.
   const [tasks, setTasks] = useState([]);
-  feature/task-dates
   const [error, setError] = useState('');
 
   // Formulario de nueva tarea
@@ -50,14 +45,7 @@ export default function TaskList() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  // Edición
-
-
-  // Stores the title entered in the new-task form.
-  const [title, setTitle] = useState('');
-
   // Identifies the task currently being edited; null means no active edit.
-  main
   const [editingId, setEditingId] = useState(null);
 
   // Stores the temporary title entered while editing an existing task.
@@ -156,7 +144,6 @@ export default function TaskList() {
     loadTasks();
   };
 
-feature/task-dates
   const startEditing = (task) => {
     setEditingId(task.id);
     setEditTitle(task.title);
@@ -169,8 +156,6 @@ feature/task-dates
     setEditingId(null);
     setError('');
   };
-
-  const updateTask = async (id) => {
 
   /**
    * Updates the title of an existing task.
@@ -185,8 +170,7 @@ feature/task-dates
    * @param {number} id - Unique identifier of the task to update.
    * @returns {Promise<void>}
    */
-  const updateTaskTitle = async (id) => {
-    main
+  const updateTask = async (id) => {
     if (!editTitle.trim()) return;
 
     const dateError = validateDates(editStartDate, editEndDate);
