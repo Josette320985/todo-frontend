@@ -1,5 +1,6 @@
-import { type JSX, useState } from 'react';
+import { type JSX, useEffect, useState } from 'react';
 import { Container, Navbar, Button } from 'react-bootstrap';
+import { AUTH_UNAUTHORIZED_EVENT } from './api/client';
 import LoginForm from './components/LoginForm';
 import TaskList from './components/TaskList';
 
@@ -20,6 +21,17 @@ export default function App(): JSX.Element {
     localStorage.removeItem('token');
     setLoggedIn(false);
   };
+
+  // Automatically log out when the API client detects an expired/invalid 401 token.
+  useEffect((): (() => void) => {
+    const handleUnauthorized = (): void => {
+      setLoggedIn(false);
+    };
+    window.addEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
+    return (): void => {
+      window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
+    };
+  }, []);
 
   return (
     <div className="bg-light min-vh-100 pb-5">
