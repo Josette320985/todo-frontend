@@ -63,7 +63,20 @@ export default function TaskList(): JSX.Element {
 
   // Loads the task list once when the component is mounted.
   useEffect(() => {
-    loadTasks();
+    let active = true;
+    api
+      .get<Task[]>('/v1/tasks/')
+      .then(({ data }) => {
+        if (active) {
+          setTasks(data);
+        }
+      })
+      .catch((err: unknown) => {
+        console.error('Error cargando tareas', err);
+      });
+    return (): void => {
+      active = false;
+    };
   }, []);
 
   /**
@@ -90,7 +103,7 @@ export default function TaskList(): JSX.Element {
       setStartDate('');
       setEndDate('');
       setError('');
-      loadTasks();
+      await loadTasks();
     } catch (err: unknown) {
       console.error('Error creando tarea', err);
       setError('No se pudo crear la tarea. Revisa los datos.');
@@ -101,17 +114,27 @@ export default function TaskList(): JSX.Element {
    * Toggles the completion status of an existing task.
    */
   const toggleTask = async (task: Task): Promise<void> => {
-    const payload: TaskUpdate = { completed: !task.completed };
-    await api.put<Task>(`/v1/tasks/${task.id}`, payload);
-    loadTasks();
+    try {
+      const payload: TaskUpdate = { completed: !task.completed };
+      await api.put<Task>(`/v1/tasks/${task.id}`, payload);
+      await loadTasks();
+    } catch (err: unknown) {
+      console.error('Error actualizando estado de tarea', err);
+      setError('No se pudo actualizar el estado de la tarea.');
+    }
   };
 
   /**
    * Deletes a task using its unique identifier.
    */
   const deleteTask = async (id: number): Promise<void> => {
-    await api.delete(`/v1/tasks/${id}`);
-    loadTasks();
+    try {
+      await api.delete(`/v1/tasks/${id}`);
+      await loadTasks();
+    } catch (err: unknown) {
+      console.error('Error eliminando tarea', err);
+      setError('No se pudo eliminar la tarea.');
+    }
   };
 
   const startEditing = (task: Task): void => {
@@ -151,7 +174,7 @@ export default function TaskList(): JSX.Element {
       setEditStartDate('');
       setEditEndDate('');
       setError('');
-      loadTasks();
+      await loadTasks();
     } catch (err: unknown) {
       console.error('Error actualizando tarea', err);
       setError('No se pudo actualizar la tarea. Revisa los datos.');
