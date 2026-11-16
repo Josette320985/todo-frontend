@@ -23,8 +23,17 @@ export interface TokenResponse {
 }
 
 /**
- * Standard FastAPI HTTPException response body.
+ * Individual Pydantic validation error item returned by FastAPI on HTTP 422.
+ */
+export interface ValidationErrorItem {
+  loc?: Array<string | number>;
+  msg: string;
+  type?: string;
+}
+
+/**
+ * Standard FastAPI HTTPException or 422 RequestValidationError response body.
  */
 export interface ApiErrorResponse {
-  detail?: string;
+  detail?: string | ValidationErrorItem[];
 }
