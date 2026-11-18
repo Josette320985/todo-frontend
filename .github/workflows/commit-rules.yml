@@ -1,0 +1,50 @@
+# Enforces the Team 3 commit rules on every pull request (docs/CONTRIBUTING.md).
+# Mirrors .githooks/commit-msg, because local hooks can be skipped.
+name: commit-rules
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  commit-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Conventional Commits headers (max 72 characters)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          pattern='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._-]+\))?!?: [^ ].*'
+          status=0
+          while IFS= read -r header; do
+            [ -z "$header" ] && continue
+            if ! printf '%s\n' "$header" | grep -Eq "$pattern" || [ "${#header}" -gt 72 ]; then
+              echo "::error::Invalid commit header: $header"
+              status=1
+            fi
+          done <<< "$(git log --no-merges --format=%s "$BASE_SHA..$HEAD_SHA")"
+          exit $status
+
+      - name: Code changes include documentation
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'docs-exempt') }}
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          changed=$(git diff --name-only "$BASE_SHA...$HEAD_SHA")
+          code=$(printf '%s\n' "$changed" | grep -E -f .githooks/code-paths || true)
+          docs=$(printf '%s\n' "$changed" | grep -E '(^docs/|\.md$)' || true)
+          if [ -n "$code" ] && [ -z "$docs" ]; then
+            echo "::error::Code changed without documentation. Update docs/ (for example docs/CHANGELOG.md) or add the 'docs-exempt' label."
+            printf '%s\n' "$code"
+            exit 1
+          fi
+          echo "OK"
