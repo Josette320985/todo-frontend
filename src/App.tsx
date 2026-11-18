@@ -1,6 +1,6 @@
 import { type JSX, useEffect, useState } from 'react';
 import { Container, Navbar, Button } from 'react-bootstrap';
-import { AUTH_UNAUTHORIZED_EVENT } from './api/client';
+import api, { AUTH_UNAUTHORIZED_EVENT } from './api/client';
 import LoginForm from './components/LoginForm';
 import TaskList from './components/TaskList';
 
@@ -15,9 +15,11 @@ export default function App(): JSX.Element {
   );
 
   /**
-   * Logs out the current user.
+   * Logs out the current user: revokes the token on the server
+   * (best effort) and always clears the local session.
    */
-  const logout = (): void => {
+  const logout = async (): Promise<void> => {
+    await api.post('/v1/auth/logout').catch(() => undefined);
     localStorage.removeItem('token');
     setLoggedIn(false);
   };
