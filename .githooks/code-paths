@@ -1,0 +1,10 @@
+^src/
+^public/
+^index\.html$
+^nginx\.conf$
+^Dockerfile$
+^\.dockerignore$
+^package(-lock)?\.json$
+^vite\.config\.[jt]s$
+^tsconfig[^/]*\.json$
+^eslint\.config\.[jt]s$

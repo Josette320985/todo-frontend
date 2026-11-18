@@ -1,0 +1,4 @@
+# Git hooks and shell scripts must keep LF endings to run on Linux/macOS
+# and in Git Bash on Windows.
+.githooks/* text eol=lf
+*.sh text eol=lf
