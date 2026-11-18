@@ -13,3 +13,8 @@ finding ID and the team member block (P1-P8) responsible for it.
   documentation change in every commit that touches code (P3).
 - `commit-rules` GitHub Actions workflow that runs the same checks on every
   pull request (P3).
+
+### Security
+
+- SEG-H02: nginx rejects API request bodies larger than 16 KB with `413`
+  (`client_max_body_size 16k` in `location /api/`) (P3).
