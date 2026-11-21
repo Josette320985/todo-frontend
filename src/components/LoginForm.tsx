@@ -1,37 +1,11 @@
 import { type FormEvent, type JSX, useState } from 'react';
-import { type AxiosError } from 'axios';
+import { getApiError } from '../api/errors';
 import { Form, Button, Alert, Card } from 'react-bootstrap';
 import * as auth from '../api/auth';
-import type {
-  ApiErrorResponse,
-  UserCreate,
-  ValidationErrorItem,
-} from '../types/auth';
+import type { UserCreate } from '../types/auth';
 
 export interface LoginFormProps {
   onLogin: () => void;
-}
-
-/**
- * Extracts a safe, human-readable error string from a FastAPI error response.
- *
- * Handles both standard string details (400/401/429) and Pydantic validation
- * error arrays (422) so React never attempts to render raw objects.
- */
-function formatApiErrorDetail(
-  detail: string | ValidationErrorItem[] | undefined,
-): string {
-  if (typeof detail === 'string' && detail.trim()) {
-    return detail;
-  }
-  if (Array.isArray(detail) && detail.length > 0) {
-    return detail
-      .map((item: ValidationErrorItem) =>
-        item.msg.replace(/^Value error,\s*/i, ''),
-      )
-      .join('. ');
-  }
-  return 'Error al conectar con el servidor';
 }
 
 /**
@@ -70,8 +44,7 @@ export default function LoginForm({ onLogin }: LoginFormProps): JSX.Element {
       await auth.login(email, password);
       onLogin();
     } catch (err: unknown) {
-      const axiosErr = err as AxiosError<ApiErrorResponse>;
-      setError(formatApiErrorDetail(axiosErr.response?.data?.detail));
+      setError(getApiError(err).message);
     }
   };
 

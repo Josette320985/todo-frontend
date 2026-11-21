@@ -2,7 +2,6 @@ import { Profiler, type ProfilerOnRenderCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import TaskList from '../src/components/TaskList';
-import api from '../src/api/client';
 import type { Task } from '../src/types/task';
 
 // Isolated fixture: never sends requests, reads credentials or seeds a real DB.
@@ -14,12 +13,12 @@ const tasks: Task[] = Array.from({ length: 1000 }, (_, index) => ({
   start_date: '2026-11-01',
   end_date: '2026-11-30',
 }));
-api.interceptors.request.clear();
-api.defaults.adapter = async config => {
-  if (config.method !== 'get' || config.url !== '/v1/tasks/') {
-    throw new Error('Escenario de lectura: solo escribir en el formulario, sin guardar.');
+// Override the transport only in this isolated page; no real requests leave it.
+window.fetch = async (input, init) => {
+  if (String(input) !== '/api/v1/tasks/' || init?.method !== 'GET') {
+    return new Response(JSON.stringify({ detail: 'Escenario de solo lectura.' }), { status: 405 });
   }
-  return { data: tasks, status: 200, statusText: 'OK', headers: {}, config };
+  return new Response(JSON.stringify(tasks), { status: 200, headers: { 'Content-Type': 'application/json' } });
 };
 
 let commits = 0;
