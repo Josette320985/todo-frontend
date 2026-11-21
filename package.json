@@ -1,6 +1,7 @@
 {
   "name": "todo-frontend",
   "private": true,
+  "packageManager": "npm@11.11.0",
   "version": "0.0.0",
   "type": "module",
   "scripts": {
