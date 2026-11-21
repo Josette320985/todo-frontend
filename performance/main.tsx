@@ -33,6 +33,7 @@ createRoot(document.getElementById('root')!).render(
     <h1>PERF-06: escenario aislado</h1>
     <p>1,000 tareas ficticias. Escribe en Nueva tarea sin guardar. Usa React DevTools Profiler para identificar qué componentes se renderizan.</p>
     <p id="profile-output" aria-live="off" />
+    <p id="profile-items" data-commits="0" aria-live="off">Commits de TaskItem: 0</p>
     <Profiler id="TaskList-1000" onRender={report}><TaskList /></Profiler>
   </main>,
 );
