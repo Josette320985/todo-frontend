@@ -1,3 +1,4 @@
+import { getToken, clearToken } from './token';
 import axios, {
   type AxiosError,
   type AxiosInstance,
@@ -27,7 +28,7 @@ const api: AxiosInstance = axios.create({
  */
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
-    const token: string | null = localStorage.getItem('token');
+    const token: string | null = getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -49,7 +50,7 @@ api.interceptors.response.use(
       error.response?.status === 401 &&
       !requestUrl.includes('/auth/login')
     ) {
-      localStorage.removeItem('token');
+      clearToken();
       window.dispatchEvent(new Event(AUTH_UNAUTHORIZED_EVENT));
     }
     return Promise.reject(error);

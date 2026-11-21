@@ -1,12 +1,10 @@
 import { type FormEvent, type JSX, useState } from 'react';
 import { type AxiosError } from 'axios';
 import { Form, Button, Alert, Card } from 'react-bootstrap';
-import api from '../api/client';
+import * as auth from '../api/auth';
 import type {
   ApiErrorResponse,
-  TokenResponse,
   UserCreate,
-  UserRead,
   ValidationErrorItem,
 } from '../types/auth';
 
@@ -66,15 +64,10 @@ export default function LoginForm({ onLogin }: LoginFormProps): JSX.Element {
     try {
       if (isRegister) {
         const registerPayload: UserCreate = { email, password };
-        await api.post<UserRead>('/v1/auth/register', registerPayload);
+        await auth.register(registerPayload);
       }
 
-      const params = new URLSearchParams();
-      params.append('username', email);
-      params.append('password', password);
-
-      const { data } = await api.post<TokenResponse>('/v1/auth/login', params);
-      localStorage.setItem('token', data.access_token);
+      await auth.login(email, password);
       onLogin();
     } catch (err: unknown) {
       const axiosErr = err as AxiosError<ApiErrorResponse>;

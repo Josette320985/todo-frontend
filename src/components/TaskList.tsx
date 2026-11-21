@@ -9,25 +9,10 @@ import {
   Col,
   Alert,
 } from 'react-bootstrap';
-import api from '../api/client';
+import * as tasksApi from '../api/tasks';
+import { formatDate, validateDates } from '../lib/dates';
 import { logApiError } from '../api/logError';
 import type { Task, TaskCreate, TaskUpdate } from '../types/task';
-
-// Convierte "2026-11-12" en "12/11/2026" sin usar Date
-// (evita el desfase de un día por zona horaria).
-function formatDate(value: string | null | undefined): string {
-  if (!value) return '';
-  const [year, month, day] = value.split('-');
-  return `${day}/${month}/${year}`;
-}
-
-// Devuelve un mensaje de error si las fechas son inválidas, o '' si están bien.
-function validateDates(start: string, end: string): string {
-  if (start && end && end < start) {
-    return 'La fecha de término no puede ser anterior a la fecha de inicio.';
-  }
-  return '';
-}
 
 /**
  * Renders and manages the authenticated user's task list.
@@ -55,7 +40,7 @@ export default function TaskList(): JSX.Element {
    */
   const loadTasks = async (): Promise<void> => {
     try {
-      const { data } = await api.get<Task[]>('/v1/tasks/');
+      const data = await tasksApi.listTasks();
       setTasks(data);
     } catch (err: unknown) {
       logApiError('Error cargando tareas', err);
@@ -65,9 +50,8 @@ export default function TaskList(): JSX.Element {
   // Loads the task list once when the component is mounted.
   useEffect(() => {
     let active = true;
-    api
-      .get<Task[]>('/v1/tasks/')
-      .then(({ data }) => {
+    tasksApi.listTasks()
+      .then((data) => {
         if (active) {
           setTasks(data);
         }
@@ -99,7 +83,7 @@ export default function TaskList(): JSX.Element {
         start_date: startDate || null,
         end_date: endDate || null,
       };
-      await api.post<Task>('/v1/tasks/', payload);
+      await tasksApi.createTask(payload);
       setTitle('');
       setStartDate('');
       setEndDate('');
@@ -117,7 +101,7 @@ export default function TaskList(): JSX.Element {
   const toggleTask = async (task: Task): Promise<void> => {
     try {
       const payload: TaskUpdate = { completed: !task.completed };
-      await api.put<Task>(`/v1/tasks/${task.id}`, payload);
+      await tasksApi.updateTask(task.id, payload);
       await loadTasks();
     } catch (err: unknown) {
       logApiError('Error actualizando estado de tarea', err);
@@ -130,7 +114,7 @@ export default function TaskList(): JSX.Element {
    */
   const deleteTask = async (id: number): Promise<void> => {
     try {
-      await api.delete(`/v1/tasks/${id}`);
+      await tasksApi.removeTask(id);
       await loadTasks();
     } catch (err: unknown) {
       logApiError('Error eliminando tarea', err);
@@ -169,7 +153,7 @@ export default function TaskList(): JSX.Element {
         start_date: editStartDate || null,
         end_date: editEndDate || null,
       };
-      await api.put<Task>(`/v1/tasks/${id}`, payload);
+      await tasksApi.updateTask(id, payload);
       setEditingId(null);
       setEditTitle('');
       setEditStartDate('');
