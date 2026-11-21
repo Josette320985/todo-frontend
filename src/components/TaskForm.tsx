@@ -1,58 +1,27 @@
 import { useState, type FormEvent } from 'react';
-import { Form, InputGroup, Button, Row, Col } from 'react-bootstrap';
+import { Form, Button } from 'react-bootstrap';
 import { validateDates } from '../lib/dates';
 import type { TaskCreate } from '../types/task';
-interface Props { onCreate: (data: TaskCreate) => Promise<boolean>; onError: (message: string) => void }
-export default function TaskForm({ onCreate, onError }: Props) {
-  const [title, setTitle] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+import TaskFields, { type TaskDraft } from './TaskFields';
+interface Props { onCreate: (data: TaskCreate) => Promise<boolean>; onError: (message: string) => void; fieldErrors?: Record<string, string>; cooldown?: number }
+export default function TaskForm({ onCreate, onError, fieldErrors, cooldown = 0 }: Props) {
+  const [value, setValue] = useState<TaskDraft>({ title: '', start: '', end: '' });
+  const [pending, setPending] = useState(false);
+  const invalid = !value.title.trim() || Boolean(validateDates(value.start, value.end));
   const addTask = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!title.trim()) return;
-    const error = validateDates(startDate, endDate);
-    if (error) { onError(error); return; }
-    if (await onCreate({ title, start_date: startDate || null, end_date: endDate || null })) {
-      setTitle(''); setStartDate(''); setEndDate('');
-    }
+    if (invalid || pending || cooldown) return;
+    setPending(true); onError('');
+    try {
+      if (await onCreate({ title: value.title.trim(), start_date: value.start || null, end_date: value.end || null })) {
+        setValue({ title: '', start: '', end: '' });
+      }
+    } finally { setPending(false); }
   };
-  return (
-<Form onSubmit={addTask} className="mb-4">
-<InputGroup className="mb-2">
-  <Form.Control
-    value={title}
-    onChange={(e) => setTitle(e.target.value)}
-    placeholder="Nueva tarea..."
-  />
-  <Button type="submit" variant="success">
-    Agregar
-  </Button>
-</InputGroup>
-<Row className="g-2">
-  <Col xs={12} sm={6}>
-    <Form.Label className="small text-muted mb-0">
-      Fecha de inicio
-    </Form.Label>
-    <Form.Control
-      type="date"
-      size="sm"
-      value={startDate}
-      onChange={(e) => setStartDate(e.target.value)}
-    />
-  </Col>
-  <Col xs={12} sm={6}>
-    <Form.Label className="small text-muted mb-0">
-      Fecha de término
-    </Form.Label>
-    <Form.Control
-      type="date"
-      size="sm"
-      value={endDate}
-      min={startDate || undefined}
-      onChange={(e) => setEndDate(e.target.value)}
-    />
-  </Col>
-</Row>
-        </Form>
-  );
+  return <Form onSubmit={addTask} className="mb-4">
+    <TaskFields value={value} onChange={setValue} errors={fieldErrors} disabled={pending} />
+    <Button type="submit" variant="success" className="mt-2" disabled={Boolean(invalid || pending || cooldown)}>
+      {pending ? 'Guardando...' : cooldown ? `Espera ${cooldown} s` : 'Agregar'}
+    </Button>
+  </Form>;
 }

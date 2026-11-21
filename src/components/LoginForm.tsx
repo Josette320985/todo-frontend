@@ -1,95 +1,57 @@
-import { type FormEvent, type JSX, useState } from 'react';
-import { getApiError } from '../api/errors';
+import { useState, type FormEvent } from 'react';
 import { Form, Button, Alert, Card } from 'react-bootstrap';
 import * as auth from '../api/auth';
-import type { UserCreate } from '../types/auth';
+import { getApiError } from '../api/errors';
+import { validatePassword } from '../lib/validation';
+import { useCooldown } from '../hooks/useCooldown';
+export interface LoginFormProps { onLogin: () => void }
 
-export interface LoginFormProps {
-  onLogin: () => void;
-}
-
-/**
- * Renders the authentication form for user login and registration.
- *
- * Supports two modes:
- * - Login: authenticates an existing user.
- * - Registration: creates a new account and automatically logs in.
- *
- * After successful authentication, stores the access token in
- * localStorage and notifies the parent component through onLogin().
- */
-export default function LoginForm({ onLogin }: LoginFormProps): JSX.Element {
-  // Determines whether the form is in login or registration mode.
-  const [isRegister, setIsRegister] = useState<boolean>(false);
-
-  // Controlled form inputs. Email is submitted as "username" during login.
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-
-  // Stores authentication errors displayed to the user.
-  const [error, setError] = useState<string>('');
-
-  /**
-   * Handles login and registration form submissions.
-   */
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
-    e.preventDefault();
-    setError('');
+export default function LoginForm({ onLogin }: LoginFormProps) {
+  const [isRegister, setIsRegister] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [fields, setFields] = useState<Record<string, string>>({});
+  const [pending, setPending] = useState(false);
+  const { remaining, start } = useCooldown();
+  const passwordError = isRegister && password ? validatePassword(password) : '';
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (pending || remaining || (isRegister && validatePassword(password))) return;
+    setPending(true); setError(''); setFields({});
     try {
-      if (isRegister) {
-        const registerPayload: UserCreate = { email, password };
-        await auth.register(registerPayload);
-      }
-
-      await auth.login(email, password);
-      onLogin();
-    } catch (err: unknown) {
-      setError(getApiError(err).message);
-    }
+      if (isRegister) { await auth.register({ email: email.trim(), password }); setIsRegister(false); }
+      await auth.login(email.trim(), password); onLogin();
+    } catch (err) {
+      const info = getApiError(err); setError(info.message); setFields(info.fieldErrors); start(info.retryAfter);
+    } finally { setPending(false); }
   };
-
-  return (
-    <Card className="mx-auto mt-5" style={{ maxWidth: '400px' }}>
-      <Card.Body>
-        <h3 className="text-center mb-4">
-          {isRegister ? 'Registro' : 'Iniciar Sesión'}
-        </h3>
-        {error && <Alert variant="danger">{error}</Alert>}
-        <Form onSubmit={handleSubmit}>
-          <Form.Group className="mb-3">
-            <Form.Label>Email</Form.Label>
-            <Form.Control
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </Form.Group>
-          <Form.Group className="mb-3">
-            <Form.Label>Contraseña</Form.Label>
-            <Form.Control
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </Form.Group>
-          <Button type="submit" variant="primary" className="w-100 mb-3">
-            {isRegister ? 'Registrarse y Entrar' : 'Entrar'}
-          </Button>
-          <div className="text-center">
-            <Button
-              variant="link"
-              size="sm"
-              onClick={() => setIsRegister(!isRegister)}
-            >
-              {isRegister
-                ? '¿Ya tienes cuenta? Inicia sesión'
-                : '¿No tienes cuenta? Regístrate'}
-            </Button>
-          </div>
-        </Form>
-      </Card.Body>
-    </Card>
-  );
+  return <Card className="mx-auto mt-5" style={{ maxWidth: '400px' }}><Card.Body>
+    <h3 className="text-center mb-4">{isRegister ? 'Registro' : 'Iniciar Sesión'}</h3>
+    {error && <Alert variant="danger">{error}</Alert>}
+    <Form onSubmit={handleSubmit}>
+      <Form.Group className="mb-3" controlId="auth-email">
+        <Form.Label>Email</Form.Label>
+        <Form.Control type="email" value={email} required maxLength={254} disabled={pending}
+          isInvalid={Boolean(fields.email || fields.username)} aria-describedby="email-error"
+          onChange={event => { setEmail(event.target.value); setFields({}); }} />
+        <Form.Control.Feedback type="invalid" id="email-error">{fields.email || fields.username}</Form.Control.Feedback>
+      </Form.Group>
+      <Form.Group className="mb-3" controlId="auth-password">
+        <Form.Label>Contraseña</Form.Label>
+        <Form.Control type="password" value={password} required disabled={pending}
+          isInvalid={Boolean(passwordError || fields.password)} aria-describedby="password-help password-error"
+          autoComplete={isRegister ? 'new-password' : 'current-password'}
+          onChange={event => { setPassword(event.target.value); setFields({}); }} />
+        {isRegister && <Form.Text id="password-help">Mínimo 8 caracteres, con al menos una letra y un número. Máximo 72 bytes UTF-8.</Form.Text>}
+        <Form.Control.Feedback type="invalid" id="password-error">{passwordError || fields.password}</Form.Control.Feedback>
+      </Form.Group>
+      <Button type="submit" variant="primary" className="w-100 mb-3" disabled={Boolean(pending || remaining || passwordError)}>
+        {pending ? 'Enviando...' : remaining ? `Espera ${remaining} s` : isRegister ? 'Registrarse y Entrar' : 'Entrar'}
+      </Button>
+      <div className="text-center"><Button variant="link" size="sm" disabled={pending} onClick={() => { setIsRegister(!isRegister); setFields({}); setError(''); }}>
+        {isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate'}
+      </Button></div>
+    </Form>
+  </Card.Body></Card>;
 }

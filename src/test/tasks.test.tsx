@@ -41,3 +41,28 @@ it('preserves create, toggle, edit, cancel and delete', async () => {
   await user.click(screen.getByRole('button', { name: 'Eliminar' }));
   await screen.findByText('No hay tareas pendientes.');
 });
+it('removes a stale task after a 404 from delete', async () => {
+  rows = [{ id: 1, title: 'Eliminada en otra pestaña', completed: false, description: null, start_date: null, end_date: null }];
+  vi.mocked(api.removeTask).mockRejectedValueOnce({ status: 404 });
+  const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    const user = userEvent.setup(); render(<TaskList />);
+    await screen.findByText('Eliminada en otra pestaña');
+    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+    await screen.findByText('Esta tarea ya no existe');
+    expect(screen.queryByText('Eliminada en otra pestaña')).not.toBeInTheDocument();
+  } finally { spy.mockRestore(); }
+});
+it('shows network failures on create and keeps the draft for retry', async () => {
+  vi.mocked(api.createTask).mockRejectedValueOnce({ kind: 'network' });
+  const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    const user = userEvent.setup(); render(<TaskList />);
+    await screen.findByText('No hay tareas pendientes.');
+    await user.type(screen.getByPlaceholderText('Nueva tarea...'), 'Pendiente');
+    await user.click(screen.getByRole('button', { name: 'Agregar' }));
+    await screen.findByText('No hay conexión con el servidor. Revisa tu internet.');
+    expect(screen.getByPlaceholderText('Nueva tarea...')).toHaveValue('Pendiente');
+    expect(screen.getByRole('button', { name: 'Agregar' })).toBeEnabled();
+  } finally { spy.mockRestore(); }
+});
