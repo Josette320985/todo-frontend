@@ -45,3 +45,17 @@ npx vite build --config performance/vite.config.mjs
 
 Para medir PERF-04 después, ejecutar `npm run build` de nuevo: elimina
 la compilación auxiliar de `dist/performance` y evita sumarla al bundle real.
+
+## Revisión con el reporte de seguridad del 17/11/2026
+
+SEG-H12 (páginas 10 y 11 de `seguridad todo.pdf`) propone paginación y un tope
+de tareas por usuario. Son controles de cantidad de datos y consumo del
+servidor: no equivalen a evitar renders innecesarios de los elementos visibles.
+El escenario de 1,000 tareas es una prueba sintética del criterio de PERF-06,
+no una propuesta de cargar 1,000 registros en producción ni de eludir topes.
+Cuando se integre paginación habrá que adaptar el mock al contrato acordado y
+medir también la cantidad real de filas por página.
+
+El reparto P5/P7 del PDF es sugerido y no contiene nombres. No reasigna a
+Andre tareas de backend ni sustituye las asignaciones de Shortcut. La
+dependencia ARQ-07 sigue vigente. No se justifica añadir memo sin el perfil.

@@ -41,3 +41,18 @@ Validado: TypeScript, ESLint, build normal y ejecución del medidor.
    timeout, login 401 y sesión expirada antes de quitar Axios del lockfile.
 5. Medir de nuevo. Los 58 KB / 21 KB gzip de la historia son una hipótesis
    previa, no un ahorro demostrado en esta rama.
+
+## Revisión con el reporte de seguridad del 17/11/2026
+
+El documento `seguridad todo.pdf` analiza el frontend dc9618e y el backend
+c590efd; no representa necesariamente el estado actual de equipo3.
+SEC-08 (páginas 3 y 10) exige conservar la eliminación del token y la salida
+de sesión ante un 401 protegido. SEG-H11 confirma que los errores completos
+de Axios pueden exponer Authorization en consola. En el código revisado
+de esta rama siguen existiendo esos console.error en TaskList.
+
+Además de los casos anteriores, comprobar que los errores del futuro wrapper
+no arrastren cabeceras, tokens ni cuerpos con contraseñas y que un login 401
+no dispare el evento de sesión expirada. Una respuesta 204 de logout tampoco
+debe fallar intentando parsear JSON. El informe refuerza la dependencia de
+SEG-H11; sustituir Axios por sí solo no demuestra que la fuga esté corregida.
