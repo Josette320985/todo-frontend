@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-bootstrap';
 import api from '../api/client';
+import { logApiError } from '../api/logError';
 import type { Task, TaskCreate, TaskUpdate } from '../types/task';
 
 // Convierte "2026-11-12" en "12/11/2026" sin usar Date
@@ -57,7 +58,7 @@ export default function TaskList(): JSX.Element {
       const { data } = await api.get<Task[]>('/v1/tasks/');
       setTasks(data);
     } catch (err: unknown) {
-      console.error('Error cargando tareas', err);
+      logApiError('Error cargando tareas', err);
     }
   };
 
@@ -72,7 +73,7 @@ export default function TaskList(): JSX.Element {
         }
       })
       .catch((err: unknown) => {
-        console.error('Error cargando tareas', err);
+        logApiError('Error cargando tareas', err);
       });
     return (): void => {
       active = false;
@@ -105,7 +106,7 @@ export default function TaskList(): JSX.Element {
       setError('');
       await loadTasks();
     } catch (err: unknown) {
-      console.error('Error creando tarea', err);
+      logApiError('Error creando tarea', err);
       setError('No se pudo crear la tarea. Revisa los datos.');
     }
   };
@@ -119,7 +120,7 @@ export default function TaskList(): JSX.Element {
       await api.put<Task>(`/v1/tasks/${task.id}`, payload);
       await loadTasks();
     } catch (err: unknown) {
-      console.error('Error actualizando estado de tarea', err);
+      logApiError('Error actualizando estado de tarea', err);
       setError('No se pudo actualizar el estado de la tarea.');
     }
   };
@@ -132,7 +133,7 @@ export default function TaskList(): JSX.Element {
       await api.delete(`/v1/tasks/${id}`);
       await loadTasks();
     } catch (err: unknown) {
-      console.error('Error eliminando tarea', err);
+      logApiError('Error eliminando tarea', err);
       setError('No se pudo eliminar la tarea.');
     }
   };
@@ -176,7 +177,7 @@ export default function TaskList(): JSX.Element {
       setError('');
       await loadTasks();
     } catch (err: unknown) {
-      console.error('Error actualizando tarea', err);
+      logApiError('Error actualizando tarea', err);
       setError('No se pudo actualizar la tarea. Revisa los datos.');
     }
   };
@@ -343,3 +344,4 @@ export default function TaskList(): JSX.Element {
     </Card>
   );
 }
+
