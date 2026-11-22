@@ -1,3 +1,5 @@
+import { TASK_LIMIT_MESSAGE } from '../lib/limits';
+
 export interface ApiErrorInfo {
   message: string;
   fieldErrors: Record<string, string>;
@@ -39,6 +41,8 @@ export function getApiError(error: unknown): ApiErrorInfo {
   else if (err.kind === 'cancelled') message = 'Solicitud cancelada.';
   else if (!status) message = 'No hay conexión con el servidor. Revisa tu internet.';
   else if (status === 404) message = 'Esta tarea ya no existe';
+  // SEG-H12: the backend refused a new task because the user hit the cap.
+  else if (status === 409 && data.code === 'task_limit_reached') message = TASK_LIMIT_MESSAGE;
   else if (status === 429) message = retryAfter === undefined ? 'Demasiados intentos. Intenta de nuevo en un momento.' : `Demasiados intentos. Intenta en ${retryAfter} s`;
   else if (status >= 500) message = 'Algo falló en el servidor. Intenta de nuevo en un momento.';
   return { message, fieldErrors, status, retryAfter };

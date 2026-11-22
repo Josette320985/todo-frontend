@@ -3,6 +3,7 @@ import { Card, Alert, Button, ListGroup } from 'react-bootstrap';
 import { useTasks } from '../hooks/useTasks';
 import TaskForm from './TaskForm';
 import TaskItem from './TaskItem';
+import { MAX_TASKS_PER_USER } from '../lib/limits';
 
 /** Three grey rows shaped like tasks while the list loads (UX-01). */
 function TaskListSkeleton() {
@@ -28,7 +29,8 @@ export default function TaskList() {
       <Card.Body>
         <h3 className="mb-4">Mis Tareas</h3>
         {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
-        <TaskForm onCreate={create} onError={setError} fieldErrors={errorId === undefined ? fieldErrors : {}} cooldown={remaining} />
+        <TaskForm onCreate={create} onError={setError} fieldErrors={errorId === undefined ? fieldErrors : {}} cooldown={remaining}
+          atLimit={status === 'ready' && tasks.length >= MAX_TASKS_PER_USER} />
         {status === 'loading' && <TaskListSkeleton />}
         {status === 'error' && (
           <Alert variant="danger" className="d-flex justify-content-between align-items-center gap-3 mb-0">
