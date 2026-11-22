@@ -1,0 +1,26 @@
+/*
+ * Design and motion tokens for the To-Do app (UX-15).
+ *
+ * Bootstrap 5.3 already provides the color, spacing and radius scales, so
+ * this file only declares what Bootstrap does not: the shared motion
+ * vocabulary (curve + durations) and a few layout constants used by the
+ * task rows. Components consume them through var(--token) instead of
+ * hard-coding timings, which keeps every animation consistent.
+ */
+:root {
+  /* Motion: a single decelerating curve for entrances and a shorter
+   * accelerating one for exits. Durations follow the UX stories:
+   * 150 ms for frequent feedback, 200 ms for entrances, 300 ms maximum. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+
+  /* Minimum touch target for icon-only actions (UX-07). */
+  --touch-target: 2.5rem;
+
+  /* Keyboard focus ring shared by interactive controls (UX-09). */
+  --focus-ring-width: 0.25rem;
+  --focus-ring-color: rgba(var(--bs-primary-rgb), 0.25);
+}
