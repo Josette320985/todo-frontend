@@ -1,12 +1,12 @@
 import { useState, type FormEvent } from 'react';
 import { Form, Button, Alert, Card } from 'react-bootstrap';
-import * as auth from '../api/auth';
 import { getApiError } from '../api/errors';
 import { validatePassword } from '../lib/validation';
 import { useCooldown } from '../hooks/useCooldown';
-export interface LoginFormProps { onLogin: () => void }
+import { useAuth } from '../hooks/useAuth';
 
-export default function LoginForm({ onLogin }: LoginFormProps) {
+export default function LoginForm() {
+  const { login, register } = useAuth();
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,8 +20,8 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     if (pending || remaining || (isRegister && validatePassword(password))) return;
     setPending(true); setError(''); setFields({});
     try {
-      if (isRegister) { await auth.register({ email: email.trim(), password }); setIsRegister(false); }
-      await auth.login(email.trim(), password); onLogin();
+      if (isRegister) { await register({ email: email.trim(), password }); setIsRegister(false); }
+      await login(email.trim(), password);
     } catch (err) {
       const info = getApiError(err); setError(info.message); setFields(info.fieldErrors); start(info.retryAfter);
     } finally { setPending(false); }

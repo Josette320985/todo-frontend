@@ -1,20 +1,20 @@
 // TEST-08: component interactions that are already implemented.
 import { expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import LoginForm from '../components/LoginForm';
+import { renderWithAuth } from './renderWithAuth';
 import * as auth from '../api/auth';
 
-vi.mock('../api/auth', () => ({ login: vi.fn(), register: vi.fn() }));
+vi.mock('../api/auth', () => ({ login: vi.fn(), register: vi.fn(), getCurrentUser: vi.fn().mockResolvedValue({ email: 'user@example.com' }) }));
 
 beforeEach(() => vi.mocked(auth.login).mockReset());
 
 it('sends a single login request on a double click (UX-02)', async () => {
   let finish!: () => void;
   vi.mocked(auth.login).mockReturnValue(new Promise<void>(resolve => { finish = resolve; }));
-  const onLogin = vi.fn();
   const user = userEvent.setup();
-  render(<LoginForm onLogin={onLogin} />);
+  renderWithAuth(<LoginForm />);
   await user.type(screen.getByLabelText('Email'), 'user@example.com');
   await user.type(screen.getByLabelText('Contraseña'), 'Password1');
 
@@ -22,7 +22,8 @@ it('sends a single login request on a double click (UX-02)', async () => {
 
   expect(auth.login).toHaveBeenCalledTimes(1);
   finish();
-  await waitFor(() => expect(onLogin).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Entrar' })).toBeEnabled());
+  expect(auth.login).toHaveBeenCalledTimes(1);
 });
 
 // UX-09 is not implemented yet: Form.Check has no id, so the label is not
