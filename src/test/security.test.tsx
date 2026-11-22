@@ -5,7 +5,7 @@ import { logApiError } from '../api/logError';
 vi.mock('../api/tasks', () => ({ listTasks: vi.fn().mockResolvedValue([]) }));
 it('renders the list using an API-layer mock', async () => {
   render(<TaskList />);
-  expect(await screen.findByText('No hay tareas pendientes.')).toBeInTheDocument();
+  expect(await screen.findByText('Aún no tienes tareas. Escribe la primera arriba.')).toBeInTheDocument();
 });
 it('never logs request tokens or arbitrary messages', () => {
   const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
