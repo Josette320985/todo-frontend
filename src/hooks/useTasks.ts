@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import * as api from '../api/tasks';
 import { logApiError } from '../api/logError';
 import { getApiError } from '../api/errors';
+import { isPendingFirstSort, sortPendingFirst } from '../lib/taskOrder';
 import { useCooldown } from './useCooldown';
-import type { Task, TaskCreate, TaskUpdate } from '../types/task';
+import type { Task, TaskCreate, TaskSortField, TaskSortParams, TaskUpdate } from '../types/task';
 
 /** Lifecycle of the task list itself (UX-01), separate from action errors. */
 export type ListStatus = 'loading' | 'ready' | 'error';
@@ -19,7 +20,24 @@ function applyUpdate(task: Task, data: TaskUpdate): Task {
   };
 }
 
-export function useTasks() {
+/**
+ * Task list state and actions.
+ *
+ * `sort` is forwarded to the backend, which does the ordering: a list that
+ * comes from the backend is never re-sorted here (OPT-02). A change in the sort
+ * fields or direction reloads the list. The dependencies are primitives
+ * (`sortKey`, `order`), so passing a new object or array on every render does
+ * not refetch.
+ *
+ * After a local change (create, edit, toggle, delete rollback) the list is kept
+ * "pending first" in local state only, with the same order the backend uses, so
+ * a task that goes back to pending returns to its place without a reload. This
+ * applies only while the active sort is the pending-first one.
+ */
+export function useTasks(sort: TaskSortParams = {}) {
+  const { sortBy, order } = sort;
+  const sortKey = sortBy?.join(',') ?? '';
+  const keepPendingFirst = isPendingFirstSort(sortKey, order);
   const [tasks, setTasks] = useState<Task[]>([]);
   const tasksRef = useRef<Task[]>([]);
   const [status, setStatus] = useState<ListStatus>('loading');
@@ -34,16 +52,19 @@ export function useTasks() {
     tasksRef.current = next;
     setTasks(next);
   }, []);
+  // Local changes only: the list is re-sorted pending first when that is the active order.
   const updateList = useCallback((change: (current: Task[]) => Task[]) => {
-    applyTasks(change(tasksRef.current));
-  }, [applyTasks]);
+    const next = change(tasksRef.current);
+    applyTasks(keepPendingFirst ? sortPendingFirst(next) : next);
+  }, [applyTasks, keepPendingFirst]);
   // Only the latest request may update the list; any successful load makes it ready.
   const reload = useCallback(async () => {
     const id = ++request.current;
-    const data = await api.listTasks();
+    const fields = sortKey ? (sortKey.split(',') as TaskSortField[]) : undefined;
+    const data = await api.listTasks({ sortBy: fields, order });
     if (mounted.current && id === request.current) { applyTasks(data); setStatus('ready'); }
-  }, [applyTasks]);
-  // Initial load and "Reintentar": a failure shows the list error state, not the action alert.
+  }, [applyTasks, sortKey, order]);
+  // Initial load, sort change and "Reintentar": a failure shows the list error state, not the action alert.
   const load = useCallback(async () => {
     const id = request.current + 1;
     try { await reload(); } catch (err) {
