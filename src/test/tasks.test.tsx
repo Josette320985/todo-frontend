@@ -30,6 +30,31 @@ async function deleteAndExpire(title: string) {
     vi.useRealTimers();
   }
 }
+it('keeps a backend date validation error beside its field without a global alert', async () => {
+  vi.mocked(api.createTask).mockRejectedValueOnce({ status: 422, detail: 'Fecha inválida', errors: [{ field: 'end_date', message: 'Fecha inválida' }] });
+  const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    const user = userEvent.setup(); render(<TaskList />);
+    await user.type(screen.getByPlaceholderText('Nueva tarea...'), 'Pendiente');
+    await user.click(screen.getByRole('button', { name: 'Agregar' }));
+    expect(await screen.findByText('Fecha inválida')).toHaveClass('invalid-feedback');
+    expect(screen.getByLabelText('Fecha de término')).toHaveClass('is-invalid');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Nueva tarea...')).toHaveValue('Pendiente');
+  } finally { spy.mockRestore(); }
+});
+it('removes a stale task when saving returns 404', async () => {
+  rows = [{ id: 1, title: 'Borrada', description: null, completed: false, start_date: null, end_date: null }];
+  vi.mocked(api.updateTask).mockRejectedValueOnce({ status: 404 });
+  const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    const user = userEvent.setup(); render(<TaskList />);
+    await user.click(await screen.findByRole('button', { name: 'Modificar: Borrada' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+    await screen.findByText('Esta tarea ya no existe');
+    expect(screen.queryByRole('button', { name: 'Guardar' })).not.toBeInTheDocument();
+  } finally { spy.mockRestore(); }
+});
 it('preserves create, toggle, edit, cancel and delete', async () => {
   const user = userEvent.setup(); render(<TaskList />);
   await screen.findByText('Aún no tienes tareas. Escribe la primera arriba.');

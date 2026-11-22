@@ -1,5 +1,7 @@
 # Resumen de mejoras del equipo 3
 
+Estado actualizado de las dos historias pendientes: [ERR-06 y UX-05](errores-validacion.md).
+
 Documento histórico de implementación. Los cambios se integraron en `equipo3`
 mediante el [Pull Request #15](https://github.com/Josette320985/todo-frontend/pull/15).
 Los estados locales de las tablas siguientes corresponden a la revisión previa

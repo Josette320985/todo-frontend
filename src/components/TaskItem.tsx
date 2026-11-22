@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type Ref } from 'react';
 import { ListGroup, Form, Button, Badge } from 'react-bootstrap';
 import { dueStatus, formatDate, validateDates } from '../lib/dates';
+import { validateDescription, validateTitle } from '../lib/validation';
 import { animateRowExit } from '../lib/motion';
 import type { Task, TaskUpdate } from '../types/task';
 import TaskFields, { type TaskDraft } from './TaskFields';
@@ -56,7 +57,7 @@ export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, on
     return removed;
   });
   const due = dueStatus(task.end_date, task.completed);
-  const invalid = !value.title.trim() || Boolean(validateDates(value.start, value.end));
+  const invalid = Boolean(validateTitle(value.title) || validateDescription(value.description) || validateDates(value.start, value.end));
   const save = async () => {
     if (invalid) return;
     if (await run(() => onUpdate(task.id, { title: value.title.trim(), description: value.description.trim() || null, start_date: value.start || null, end_date: value.end || null }))) close();

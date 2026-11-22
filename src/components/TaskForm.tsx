@@ -1,6 +1,7 @@
 import { useId, useState, type FormEvent } from 'react';
 import { Form, Button } from 'react-bootstrap';
 import { validateDates } from '../lib/dates';
+import { validateTitle } from '../lib/validation';
 import { TASK_LIMIT_MESSAGE } from '../lib/limits';
 import type { TaskCreate } from '../types/task';
 import TaskFields, { type TaskDraft } from './TaskFields';
@@ -9,7 +10,7 @@ export default function TaskForm({ onCreate, onError, fieldErrors, cooldown = 0,
   const limitId = useId();
   const [value, setValue] = useState<TaskDraft>({ title: '', description: '', start: '', end: '' });
   const [pending, setPending] = useState(false);
-  const invalid = !value.title.trim() || Boolean(validateDates(value.start, value.end));
+  const invalid = Boolean(validateTitle(value.title) || validateDates(value.start, value.end));
   const addTask = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (invalid || pending || cooldown || atLimit) return;

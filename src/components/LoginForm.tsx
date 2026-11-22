@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Form, Button, Alert, Card } from 'react-bootstrap';
-import { getApiError } from '../api/errors';
+import { getApiError, getFormErrorMessage } from '../api/errors';
 import { validatePassword } from '../lib/validation';
 import { useCooldown } from '../hooks/useCooldown';
 import { useAuth } from '../hooks/useAuth';
@@ -23,7 +23,7 @@ export default function LoginForm() {
       if (isRegister) { await register({ email: email.trim(), password }); setIsRegister(false); }
       await login(email.trim(), password);
     } catch (err) {
-      const info = getApiError(err); setError(info.message); setFields(info.fieldErrors); start(info.retryAfter);
+      const info = getApiError(err); setError(getFormErrorMessage(info, ['email', 'username', 'password'])); setFields(info.fieldErrors); start(info.retryAfter);
     } finally { setPending(false); }
   };
   return <Card className="mx-auto mt-5" style={{ maxWidth: '400px' }}><Card.Body>
