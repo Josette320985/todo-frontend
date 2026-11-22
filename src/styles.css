@@ -156,3 +156,38 @@
     animation: none;
   }
 }
+
+/*
+ * Task rows entering the list (UX-17).
+ *
+ * A new row fades in and rises 4px over 200 ms. @starting-style gives the
+ * values the row starts from on its first render, so no JavaScript is
+ * needed. Existing rows keep their React key and never replay it. The exit
+ * (fade, then height collapse) runs in src/lib/motion.ts because the row
+ * must stay mounted until the animation ends.
+ */
+.task-row {
+  transition:
+    opacity var(--duration-base) var(--ease-out),
+    transform var(--duration-base) var(--ease-out);
+}
+
+@starting-style {
+  .task-row {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* Reduced motion keeps the fade and drops the rise (UX-21). */
+@media (prefers-reduced-motion: reduce) {
+  .task-row {
+    transition: opacity var(--duration-base) var(--ease-out);
+  }
+
+  @starting-style {
+    .task-row {
+      transform: none;
+    }
+  }
+}
