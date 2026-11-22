@@ -261,3 +261,44 @@
     font-size: 1rem;
   }
 }
+
+/*
+ * Alerts and toasts (UX-19).
+ *
+ * Entry: opacity + translateY(-4px), 200 ms var(--ease-out).
+ * Exit: 150 ms.
+ * The "Deshacer" toast enters and exits from the same corner (bottom-center)
+ * for spatial consistency: translateY(-4px) on entry slides it up from its
+ * resting position.
+ *
+ * React Bootstrap drives the enter/exit via the .fade/.show classes, so the
+ * durations are split by state: 200 ms while .show is present (entry) and
+ * 150 ms otherwise (exit).
+ */
+.alert.fade,
+.toast.fade {
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity 150ms var(--ease-out),
+    transform 150ms var(--ease-out);
+}
+
+.alert.fade.show,
+.toast.fade.show {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 200ms var(--ease-out);
+}
+
+/* Reduced motion keeps the opacity fade but drops the transform (UX-21). */
+@media (prefers-reduced-motion: reduce) {
+  .alert.fade,
+  .toast.fade,
+  .alert.fade.show,
+  .toast.fade.show {
+    transform: none;
+  }
+}
