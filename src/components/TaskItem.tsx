@@ -51,8 +51,8 @@ export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, on
         <Button type="submit" variant="success" size="sm" disabled={Boolean(invalid || pending || cooldown)}>Guardar</Button>
         <Button variant="secondary" size="sm" disabled={pending} onClick={() => { onError(''); onEdit(null); }}>Cancelar</Button>
       </div>
-    </Form> : <div className="d-flex justify-content-between align-items-center">
-      <div>
+    </Form> : <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div className="task-main">
         <Form.Check type="checkbox" id={`task-${task.id}`} checked={task.completed} disabled={Boolean(pending || cooldown)}
           onChange={() => void run(() => onToggle(task))}
           label={<span style={{ textDecoration: task.completed ? 'line-through' : 'none' }}>{task.title}</span>} />
