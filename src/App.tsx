@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import { Container, Navbar, Button } from 'react-bootstrap';
+import { Container, Navbar, Button, Alert } from 'react-bootstrap';
 import { useAuth } from './hooks/useAuth';
 import LoginForm from './components/LoginForm';
 import TaskList from './components/TaskList';
@@ -9,7 +9,7 @@ import TaskList from './components/TaskList';
  * The session itself lives in AuthProvider (ARQ-08).
  */
 export default function App(): JSX.Element {
-  const { isLoggedIn, userEmail, logout } = useAuth();
+  const { isLoggedIn, userEmail, sessionExpired, logout } = useAuth();
 
   return (
     <div className="bg-light min-vh-100 pb-5">
@@ -35,7 +35,14 @@ export default function App(): JSX.Element {
         </Container>
       </Navbar>
       <Container>
-        {isLoggedIn ? <TaskList /> : <LoginForm />}
+        {isLoggedIn ? <TaskList /> : <>
+          {sessionExpired && (
+            <Alert variant="warning" role="alert" className="mx-auto mt-5 mb-0" style={{ maxWidth: '400px' }}>
+              Tu sesión expiró. Vuelve a iniciar sesión.
+            </Alert>
+          )}
+          <LoginForm />
+        </>}
       </Container>
     </div>
   );
