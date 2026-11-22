@@ -5,7 +5,6 @@ import { Container, Navbar, Button } from 'react-bootstrap';
 import { AUTH_UNAUTHORIZED_EVENT } from './api/client';
 import LoginForm from './components/LoginForm';
 import TaskList from './components/TaskList';
-import type { UserRead } from './types/auth';
 
 /**
  * Main application component responsible for authentication state
@@ -44,9 +43,8 @@ export default function App(): JSX.Element {
     let active = true;
 
     if (loggedIn) {
-      void api
-        .get<UserRead>('/v1/auth/me')
-        .then(({ data }): void => {
+      void auth.getCurrentUser()
+        .then((data): void => {
           if (active) {
             setUserEmail(data.email);
           }
