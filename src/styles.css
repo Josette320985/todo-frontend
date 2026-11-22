@@ -37,3 +37,28 @@
 [data-bs-theme='dark'] .bg-light {
   background-color: var(--bs-body-bg) !important;
 }
+
+/*
+ * Button press feedback (UX-16).
+ *
+ * Every .btn scales down slightly while pressed. The transform is appended
+ * to Bootstrap's own transition list instead of replacing it, so the
+ * existing color, border and shadow transitions keep working.
+ *
+ * The press uses a shorter duration than the release: 3% is small, so on a
+ * regular click it has to reach its full size before the button is
+ * released. Pressing snaps in 60 ms; releasing eases back over 150 ms.
+ */
+.btn {
+  transition:
+    color var(--duration-fast) ease-in-out,
+    background-color var(--duration-fast) ease-in-out,
+    border-color var(--duration-fast) ease-in-out,
+    box-shadow var(--duration-fast) ease-in-out,
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.btn:active {
+  transform: scale(0.97);
+  transition-duration: 60ms;
+}
