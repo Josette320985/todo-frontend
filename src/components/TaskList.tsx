@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Card, Alert, Button, ListGroup, Toast, ToastContainer } from 'react-bootstrap';
 import { useTasks } from '../hooks/useTasks';
 import type { Task, TaskSortParams } from '../types/task';
@@ -6,6 +6,7 @@ import { DEFAULT_TASK_FILTER, EMPTY_FILTER_MESSAGE, filterTasks, type TaskFilter
 import TaskFilter from './TaskFilter';
 import TaskForm from './TaskForm';
 import TaskItem from './TaskItem';
+import TaskSummary from './TaskSummary';
 import { MAX_TASKS_PER_USER } from '../lib/limits';
 
 const UNDO_DELAY_MS = 5000;
@@ -58,62 +59,6 @@ export default function TaskList() {
     void remove(id);
   }, [remove]);
 
-  // Manual undo timers with pause/resume on tab visibility (UX-19).
-  // React Bootstrap's autohide cannot be paused, so we drive the delay
-  // ourselves and keep the remaining time when the tab is hidden.
-  const undoTimersRef = useRef<Map<number, { timeoutId: number; remaining: number; startedAt: number }>>(new Map());
-
-  useEffect(() => {
-    const timers = undoTimersRef.current;
-    // Start a timer for each newly pending delete.
-    for (const task of pendingDeletes) {
-      if (!timers.has(task.id)) {
-        const entry = { timeoutId: 0, remaining: UNDO_DELAY_MS, startedAt: Date.now() };
-        entry.timeoutId = window.setTimeout(() => {
-          commitDelete(task.id);
-        }, UNDO_DELAY_MS);
-        timers.set(task.id, entry);
-      }
-    }
-    // Clear timers for deletes that are no longer pending (undo).
-    for (const id of Array.from(timers.keys())) {
-      if (!pendingDeletes.some(task => task.id === id)) {
-        const entry = timers.get(id);
-        if (entry) clearTimeout(entry.timeoutId);
-        timers.delete(id);
-      }
-    }
-  }, [pendingDeletes, commitDelete]);
-
-  useEffect(() => {
-    const handleVisibility = () => {
-      const timers = undoTimersRef.current;
-      if (document.hidden) {
-        for (const entry of timers.values()) {
-          clearTimeout(entry.timeoutId);
-          entry.remaining = Math.max(0, entry.remaining - (Date.now() - entry.startedAt));
-        }
-      } else {
-        for (const [id, entry] of timers.entries()) {
-          entry.startedAt = Date.now();
-          entry.timeoutId = window.setTimeout(() => {
-            commitDelete(id);
-          }, entry.remaining);
-        }
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [commitDelete]);
-
-  useEffect(() => {
-    const timers = undoTimersRef.current;
-    return () => {
-      for (const entry of timers.values()) clearTimeout(entry.timeoutId);
-      timers.clear();
-    };
-  }, []);
-
   return <>
     <Card className="mx-auto mt-5 shadow-sm" style={{ maxWidth: '600px' }}>
       <Card.Body>
@@ -128,6 +73,7 @@ export default function TaskList() {
             <Button variant="outline-danger" size="sm" onClick={() => void retry()}>Reintentar</Button>
           </Alert>
         )}
+        {status === 'ready' && tasks.length > 0 && <TaskSummary tasks={tasks} />}
         {status === 'ready' && tasks.length > 0 && <TaskFilter value={filter} onChange={setFilter} />}
         {status === 'ready' && (tasks.length === 0
           ? <p className="text-muted text-center py-3 mb-0">Aún no tienes tareas. Escribe la primera arriba.</p>
