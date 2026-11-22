@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Card, Alert, Button, ListGroup, Toast, ToastContainer } from 'react-bootstrap';
 import { useTasks } from '../hooks/useTasks';
 import type { Task } from '../types/task';
@@ -47,6 +47,62 @@ export default function TaskList() {
     void remove(id);
   }, [remove]);
 
+  // Manual undo timers with pause/resume on tab visibility (UX-19).
+  // React Bootstrap's autohide cannot be paused, so we drive the delay
+  // ourselves and keep the remaining time when the tab is hidden.
+  const undoTimersRef = useRef<Map<number, { timeoutId: number; remaining: number; startedAt: number }>>(new Map());
+
+  useEffect(() => {
+    const timers = undoTimersRef.current;
+    // Start a timer for each newly pending delete.
+    for (const task of pendingDeletes) {
+      if (!timers.has(task.id)) {
+        const entry = { timeoutId: 0, remaining: UNDO_DELAY_MS, startedAt: Date.now() };
+        entry.timeoutId = window.setTimeout(() => {
+          commitDelete(task.id);
+        }, UNDO_DELAY_MS);
+        timers.set(task.id, entry);
+      }
+    }
+    // Clear timers for deletes that are no longer pending (undo).
+    for (const id of Array.from(timers.keys())) {
+      if (!pendingDeletes.some(task => task.id === id)) {
+        const entry = timers.get(id);
+        if (entry) clearTimeout(entry.timeoutId);
+        timers.delete(id);
+      }
+    }
+  }, [pendingDeletes, commitDelete]);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      const timers = undoTimersRef.current;
+      if (document.hidden) {
+        for (const entry of timers.values()) {
+          clearTimeout(entry.timeoutId);
+          entry.remaining = Math.max(0, entry.remaining - (Date.now() - entry.startedAt));
+        }
+      } else {
+        for (const [id, entry] of timers.entries()) {
+          entry.startedAt = Date.now();
+          entry.timeoutId = window.setTimeout(() => {
+            commitDelete(id);
+          }, entry.remaining);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [commitDelete]);
+
+  useEffect(() => {
+    const timers = undoTimersRef.current;
+    return () => {
+      for (const entry of timers.values()) clearTimeout(entry.timeoutId);
+      timers.clear();
+    };
+  }, []);
+
   return <>
     <Card className="mx-auto mt-5 shadow-sm" style={{ maxWidth: '600px' }}>
       <Card.Body>
@@ -72,7 +128,7 @@ export default function TaskList() {
     </Card>
     <ToastContainer position="bottom-center" className="p-3">
       {pendingDeletes.map(task => (
-        <Toast key={task.id} autohide delay={UNDO_DELAY_MS} onClose={() => commitDelete(task.id)} aria-label="Tarea eliminada">
+        <Toast key={task.id} onClose={() => commitDelete(task.id)} aria-label="Tarea eliminada">
           <Toast.Body className="d-flex align-items-center gap-2">
             <span>Tarea eliminada ·</span>
             <Button variant="link" size="sm" className="p-0" aria-label={`Deshacer eliminación de ${task.title}`} onClick={() => undoDelete(task.id)}>Deshacer</Button>
