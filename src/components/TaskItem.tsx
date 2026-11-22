@@ -52,8 +52,8 @@ export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, on
       </div>
     </Form> : <div className="d-flex justify-content-between align-items-center">
       <div>
-        <Form.Check type="checkbox" checked={task.completed} disabled={Boolean(pending || cooldown)}
-          aria-label={task.title} onChange={() => void run(() => onToggle(task))}
+        <Form.Check type="checkbox" id={`task-${task.id}`} checked={task.completed} disabled={Boolean(pending || cooldown)}
+          onChange={() => void run(() => onToggle(task))}
           label={<span style={{ textDecoration: task.completed ? 'line-through' : 'none' }}>{task.title}</span>} />
         {(task.start_date || task.end_date) && <div className="small text-muted ms-4">
           {task.start_date && <span>Inicio: {formatDate(task.start_date)}</span>}

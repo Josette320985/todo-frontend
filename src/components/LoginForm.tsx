@@ -35,10 +35,10 @@ export default function LoginForm() {
     <Form onSubmit={handleSubmit}>
       <Form.Group className="mb-3" controlId="auth-email">
         <Form.Label>Email</Form.Label>
-        <Form.Control type="email" value={email} required maxLength={254} disabled={pending}
+        <Form.Control type="email" value={email} required autoComplete="email" maxLength={254} disabled={pending}
           isInvalid={Boolean(fields.email || fields.username)} aria-describedby="email-error"
           onChange={event => { setEmail(event.target.value); setFields({}); }} />
-        <Form.Control.Feedback type="invalid" id="email-error">{fields.email || fields.username}</Form.Control.Feedback>
+        <Form.Control.Feedback type="invalid" id="email-error" aria-live="polite">{fields.email || fields.username}</Form.Control.Feedback>
       </Form.Group>
       <Form.Group className="mb-3" controlId="auth-password">
         <Form.Label>Contraseña</Form.Label>
@@ -47,7 +47,7 @@ export default function LoginForm() {
           autoComplete={isRegister ? 'new-password' : 'current-password'}
           onChange={event => { setPassword(event.target.value); setFields({}); }} />
         {isRegister && <Form.Text id="password-help">Mínimo 8 caracteres, con al menos una letra y un número. Máximo 72 bytes UTF-8.</Form.Text>}
-        <Form.Control.Feedback type="invalid" id="password-error">{passwordError || fields.password}</Form.Control.Feedback>
+        <Form.Control.Feedback type="invalid" id="password-error" aria-live="polite">{passwordError || fields.password}</Form.Control.Feedback>
       </Form.Group>
       <Button type="submit" variant="primary" className="w-100 mb-3" disabled={Boolean(pending || remaining || passwordError)}>
         {pending ? (isRegister ? 'Creando cuenta…' : 'Entrando…') : remaining ? `Espera ${remaining} s` : <span className="auth-action">

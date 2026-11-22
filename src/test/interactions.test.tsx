@@ -1,8 +1,11 @@
 // TEST-08: component interactions that are already implemented.
 import { expect, it, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import { ListGroup } from 'react-bootstrap';
 import userEvent from '@testing-library/user-event';
 import LoginForm from '../components/LoginForm';
+import TaskItem from '../components/TaskItem';
+import type { Task } from '../types/task';
 import { renderWithAuth } from './renderWithAuth';
 import * as auth from '../api/auth';
 
@@ -26,10 +29,27 @@ it('sends a single login request on a double click (UX-02)', async () => {
   expect(auth.login).toHaveBeenCalledTimes(1);
 });
 
-// UX-09 is not implemented yet: Form.Check has no id, so the label is not
-// linked to the checkbox and clicking the text does nothing. Turn this into a
-// real test in the UX-09 PR.
-it.todo('toggles a task when its text is clicked (UX-09)');
+it('toggles a task when its text is clicked (UX-09)', async () => {
+  const task: Task = { id: 7, title: 'Pagar luz', description: null, completed: false, start_date: null, end_date: null };
+  const onToggle = vi.fn().mockResolvedValue(true);
+  const user = userEvent.setup();
+  render(<ListGroup><TaskItem task={task} editing={false} onEdit={vi.fn()} onToggle={onToggle}
+    onDelete={vi.fn()} onUpdate={vi.fn()} onError={vi.fn()} /></ListGroup>);
+
+  expect(screen.getByRole('checkbox', { name: 'Pagar luz' })).toHaveAttribute('id', 'task-7');
+  await user.click(screen.getByText('Pagar luz'));
+
+  expect(onToggle).toHaveBeenCalledWith(task);
+});
+
+it('labels every login field and asks the browser for the right autofill (UX-09)', async () => {
+  const user = userEvent.setup();
+  renderWithAuth(<LoginForm />);
+  expect(screen.getByLabelText('Email')).toHaveAttribute('autocomplete', 'email');
+  expect(screen.getByLabelText('Contraseña')).toHaveAttribute('autocomplete', 'current-password');
+  await user.click(screen.getByRole('button', { name: '¿No tienes cuenta? Regístrate' }));
+  expect(screen.getByLabelText('Contraseña')).toHaveAttribute('autocomplete', 'new-password');
+});
 
 it('sends a single register request on a double click and shows its progress (UX-02)', async () => {
   let finish!: () => void;
