@@ -220,3 +220,16 @@
     opacity: 1;
   }
 }
+
+/*
+ * Task description under the title (UX-12): at most two lines, the rest is
+ * cut with an ellipsis. Line breaks typed by the user are kept.
+ */
+.task-description {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  white-space: pre-line;
+}

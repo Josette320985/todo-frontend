@@ -22,3 +22,21 @@ it('shows "Vencida" and "Vence hoy" only on pending tasks (UX-11)', () => {
   renderRow({ ...base, id: 3, end_date: '2026-11-20', completed: true });
   expect(screen.queryByText('Vencida')).not.toBeInTheDocument();
 });
+
+it('shows the description under the title and edits it (UX-12)', async () => {
+  const { default: userEvent } = await import('@testing-library/user-event');
+  const onUpdate = vi.fn().mockResolvedValue(true);
+  const task = { ...base, description: 'Con leche deslactosada' };
+  const { rerender } = renderRow(task);
+  expect(screen.getByText('Con leche deslactosada')).toHaveClass('task-description');
+
+  rerender(<ListGroup><TaskItem task={task} editing onEdit={vi.fn()} onToggle={vi.fn()} onDelete={vi.fn()}
+    onUpdate={onUpdate} onError={vi.fn()} /></ListGroup>);
+  const user = userEvent.setup();
+  const field = screen.getByLabelText('Descripción (opcional)');
+  expect(field).toHaveAttribute('maxlength', '1000');
+  await user.clear(field);
+  await user.type(field, '  ');
+  await user.click(screen.getByRole('button', { name: 'Guardar' }));
+  expect(onUpdate).toHaveBeenCalledWith(1, { title: 'Tarea', description: null, start_date: null, end_date: null });
+});

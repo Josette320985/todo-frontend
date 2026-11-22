@@ -28,14 +28,14 @@ it('preserves create, toggle, edit, cancel and delete', async () => {
   await waitFor(() => expect(screen.getByRole('checkbox')).toBeChecked());
   await user.click(screen.getByRole('button', { name: 'Modificar: Primera' }));
   let row = screen.getByRole('button', { name: 'Guardar' }).closest('.list-group-item')!;
-  await user.clear(within(row as HTMLElement).getByRole('textbox'));
-  await user.type(within(row as HTMLElement).getByRole('textbox'), 'Descartada');
+  await user.clear(within(row as HTMLElement).getByRole('textbox', { name: 'Título de la tarea' }));
+  await user.type(within(row as HTMLElement).getByRole('textbox', { name: 'Título de la tarea' }), 'Descartada');
   await user.click(screen.getByRole('button', { name: 'Cancelar' }));
   expect(screen.getByText('Primera')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Modificar: Primera' }));
   row = screen.getByRole('button', { name: 'Guardar' }).closest('.list-group-item')!;
-  await user.clear(within(row as HTMLElement).getByRole('textbox'));
-  await user.type(within(row as HTMLElement).getByRole('textbox'), 'Editada');
+  await user.clear(within(row as HTMLElement).getByRole('textbox', { name: 'Título de la tarea' }));
+  await user.type(within(row as HTMLElement).getByRole('textbox', { name: 'Título de la tarea' }), 'Editada');
   await user.click(screen.getByRole('button', { name: 'Guardar' }));
   await screen.findByText('Editada');
   await user.click(screen.getByRole('button', { name: 'Eliminar: Editada' }));

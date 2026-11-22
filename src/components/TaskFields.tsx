@@ -1,7 +1,7 @@
 import { Form, Row, Col } from 'react-bootstrap';
 import { useId } from 'react';
 import { validateDates } from '../lib/dates';
-export interface TaskDraft { title: string; start: string; end: string }
+export interface TaskDraft { title: string; description: string; start: string; end: string }
 interface Props { value: TaskDraft; onChange: (value: TaskDraft) => void; errors?: Record<string, string>; disabled?: boolean; editing?: boolean }
 export default function TaskFields({ value, onChange, errors = {}, disabled, editing }: Props) {
   const id = useId();
@@ -12,6 +12,14 @@ export default function TaskFields({ value, onChange, errors = {}, disabled, edi
       placeholder={editing ? undefined : 'Nueva tarea...'} maxLength={200} required
       disabled={disabled} isInvalid={Boolean(errors.title)} aria-describedby={errors.title ? `${id}-title-error` : undefined} />
     <Form.Control.Feedback type="invalid" id={`${id}-title-error`} aria-live="polite">{errors.title}</Form.Control.Feedback>
+    {editing && <>
+      <Form.Label htmlFor={`${id}-description`} className="small text-muted mb-0 mt-2">Descripción (opcional)</Form.Label>
+      <Form.Control id={`${id}-description`} as="textarea" rows={2} value={value.description} maxLength={1000}
+        disabled={disabled} isInvalid={Boolean(errors.description)}
+        aria-describedby={errors.description ? `${id}-description-error` : undefined}
+        onChange={event => onChange({ ...value, description: event.target.value })} />
+      <Form.Control.Feedback type="invalid" id={`${id}-description-error`} aria-live="polite">{errors.description}</Form.Control.Feedback>
+    </>}
     <Row className="g-2 mt-1">
       <Col xs={12} sm={6}>
         <Form.Label htmlFor={`${id}-start`} className="small text-muted mb-0">Fecha de inicio</Form.Label>
