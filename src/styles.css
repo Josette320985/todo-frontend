@@ -144,3 +144,15 @@
     filter: none;
   }
 }
+
+/*
+ * Loading skeleton of the task list (UX-01).
+ *
+ * Bootstrap's .placeholder-glow pulses the grey rows; users who ask for less
+ * motion get static rows instead (UX-21).
+ */
+@media (prefers-reduced-motion: reduce) {
+  .placeholder-glow .placeholder {
+    animation: none;
+  }
+}
