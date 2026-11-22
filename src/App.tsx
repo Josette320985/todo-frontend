@@ -44,11 +44,11 @@ export default function App(): JSX.Element {
     let active = true;
 
     if (loggedIn) {
-      void api
-        .get<UserRead>('/v1/auth/me')
-        .then(({ data }): void => {
+      void auth
+        .getCurrentUser()
+        .then((user: UserRead): void => {
           if (active) {
-            setUserEmail(data.email);
+            setUserEmail(user.email);
           }
         })
         .catch((): void => {
