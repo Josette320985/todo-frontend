@@ -1,6 +1,8 @@
+import * as auth from './api/auth';
+import { getToken } from './api/token';
 import { type JSX, useEffect, useState } from 'react';
 import { Container, Navbar, Button } from 'react-bootstrap';
-import api, { AUTH_UNAUTHORIZED_EVENT } from './api/client';
+import { AUTH_UNAUTHORIZED_EVENT } from './api/client';
 import LoginForm from './components/LoginForm';
 import TaskList from './components/TaskList';
 
@@ -11,7 +13,7 @@ import TaskList from './components/TaskList';
 export default function App(): JSX.Element {
   // Initializes the login state based on whether a token is stored.
   const [loggedIn, setLoggedIn] = useState<boolean>(
-    !!localStorage.getItem('token'),
+    !!getToken(),
   );
 
   /**
@@ -19,8 +21,7 @@ export default function App(): JSX.Element {
    * (best effort) and always clears the local session.
    */
   const logout = async (): Promise<void> => {
-    await api.post('/v1/auth/logout').catch(() => undefined);
-    localStorage.removeItem('token');
+    await auth.logout().catch(() => undefined);
     setLoggedIn(false);
   };
 
