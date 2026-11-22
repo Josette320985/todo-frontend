@@ -5,9 +5,12 @@ import { getApiError } from '../api/errors';
 import { useCooldown } from './useCooldown';
 import type { Task, TaskCreate, TaskUpdate } from '../types/task';
 
+/** Lifecycle of the task list itself (UX-01), separate from action errors. */
+export type ListStatus = 'loading' | 'ready' | 'error';
+
 export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<ListStatus>('loading');
   const [error, setErrorMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [errorId, setErrorId] = useState<number | undefined>();
@@ -15,19 +18,25 @@ export function useTasks() {
   const setError = useCallback((message: string) => { setErrorMessage(message); setFieldErrors({}); }, []);
   const mounted = useRef(false);
   const request = useRef(0);
+  // Only the latest request may update the list; any successful load makes it ready.
   const reload = useCallback(async () => {
     const id = ++request.current;
     const data = await api.listTasks();
-    if (mounted.current && id === request.current) setTasks(data);
+    if (mounted.current && id === request.current) { setTasks(data); setStatus('ready'); }
   }, []);
+  // Initial load and "Reintentar": a failure shows the list error state, not the action alert.
+  const load = useCallback(async () => {
+    const id = request.current + 1;
+    try { await reload(); } catch (err) {
+      if (mounted.current && id === request.current) { logApiError('Error cargando tareas', err); setStatus('error'); }
+    }
+  }, [reload]);
+  const retry = useCallback(() => { setStatus('loading'); return load(); }, [load]);
   useEffect(() => {
     mounted.current = true;
-    let active = true;
-    reload().catch(err => {
-      if (active) { logApiError('Error cargando tareas', err); setError(getApiError(err).message); }
-    }).finally(() => { if (active) setLoading(false); });
-    return () => { active = false; mounted.current = false; };
-  }, [reload, setError]);
+    void load(); // status starts as 'loading'
+    return () => { mounted.current = false; };
+  }, [load]);
   const mutate = useCallback(async (operation: () => Promise<unknown>, id?: number) => {
     try {
       await operation();
@@ -50,5 +59,5 @@ export function useTasks() {
   const update = useCallback((id: number, data: TaskUpdate) => mutate(() => api.updateTask(id, data), id), [mutate]);
   const remove = useCallback((id: number) => mutate(() => api.removeTask(id), id), [mutate]);
   const toggle = useCallback((task: Task) => update(task.id, { completed: !task.completed }), [update]);
-  return { tasks, loading, error, fieldErrors, errorId, remaining, setError, create, update, remove, toggle };
+  return { tasks, status, retry, error, fieldErrors, errorId, remaining, setError, create, update, remove, toggle };
 }

@@ -20,7 +20,7 @@ beforeEach(() => {
 });
 it('preserves create, toggle, edit, cancel and delete', async () => {
   const user = userEvent.setup(); render(<TaskList />);
-  await screen.findByText('No hay tareas pendientes.');
+  await screen.findByText('Aún no tienes tareas. Escribe la primera arriba.');
   await user.type(screen.getByPlaceholderText('Nueva tarea...'), 'Primera');
   await user.click(screen.getByRole('button', { name: 'Agregar' }));
   await screen.findByText('Primera');
@@ -39,7 +39,7 @@ it('preserves create, toggle, edit, cancel and delete', async () => {
   await user.click(screen.getByRole('button', { name: 'Guardar' }));
   await screen.findByText('Editada');
   await user.click(screen.getByRole('button', { name: 'Eliminar' }));
-  await screen.findByText('No hay tareas pendientes.');
+  await screen.findByText('Aún no tienes tareas. Escribe la primera arriba.');
 });
 it('removes a stale task after a 404 from delete', async () => {
   rows = [{ id: 1, title: 'Eliminada en otra pestaña', completed: false, description: null, start_date: null, end_date: null }];
@@ -58,7 +58,7 @@ it('shows network failures on create and keeps the draft for retry', async () =>
   const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
   try {
     const user = userEvent.setup(); render(<TaskList />);
-    await screen.findByText('No hay tareas pendientes.');
+    await screen.findByText('Aún no tienes tareas. Escribe la primera arriba.');
     await user.type(screen.getByPlaceholderText('Nueva tarea...'), 'Pendiente');
     await user.click(screen.getByRole('button', { name: 'Agregar' }));
     await screen.findByText('No hay conexión con el servidor. Revisa tu internet.');
