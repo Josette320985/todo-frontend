@@ -80,3 +80,26 @@
 .form-check-input:checked + .form-check-label {
   color: var(--bs-secondary-color);
 }
+
+/*
+ * Reduced motion (UX-21).
+ *
+ * Users who ask the operating system for less motion keep the color fades
+ * (they help show state changes) but lose every movement: the button no
+ * longer scales when pressed. Rules that add transform-based hovers must be
+ * declared inside `@media (hover: hover) and (pointer: fine)` so touch
+ * devices never get a hover state stuck after a tap.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition:
+      color var(--duration-fast) ease-in-out,
+      background-color var(--duration-fast) ease-in-out,
+      border-color var(--duration-fast) ease-in-out,
+      box-shadow var(--duration-fast) ease-in-out;
+  }
+
+  .btn:active {
+    transform: none;
+  }
+}
