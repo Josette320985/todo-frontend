@@ -103,3 +103,44 @@
     transform: none;
   }
 }
+
+/*
+ * Login <-> Register crossfade (UX-20).
+ *
+ * The title and the submit label swap without a page transition. Both states
+ * are stacked in the same grid cell and crossfade opacity and blur over
+ * 150 ms; stacking them also keeps the layout from jumping when the longer
+ * label ("Registrarse y Entrar") becomes active.
+ */
+.auth-title,
+.auth-action {
+  display: grid;
+}
+
+.auth-title-option,
+.auth-action-option {
+  grid-area: 1 / 1;
+  opacity: 0;
+  filter: blur(2px);
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    filter var(--duration-fast) var(--ease-out);
+}
+
+.auth-action-option {
+  justify-self: center;
+}
+
+.auth-title-option.is-active,
+.auth-action-option.is-active {
+  opacity: 1;
+  filter: blur(0);
+}
+
+/* Reduced motion keeps the opacity fade but drops the blur (UX-21). */
+@media (prefers-reduced-motion: reduce) {
+  .auth-title-option,
+  .auth-action-option {
+    filter: none;
+  }
+}

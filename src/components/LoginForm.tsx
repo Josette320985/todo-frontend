@@ -85,8 +85,19 @@ export default function LoginForm({ onLogin }: LoginFormProps): JSX.Element {
   return (
     <Card className="mx-auto mt-5" style={{ maxWidth: '400px' }}>
       <Card.Body>
-        <h3 className="text-center mb-4">
-          {isRegister ? 'Registro' : 'Iniciar Sesión'}
+        <h3 className="text-center mb-4 auth-title">
+          <span
+            className={`auth-title-option${isRegister ? '' : ' is-active'}`}
+            aria-hidden={isRegister}
+          >
+            Iniciar Sesión
+          </span>
+          <span
+            className={`auth-title-option${isRegister ? ' is-active' : ''}`}
+            aria-hidden={!isRegister}
+          >
+            Registro
+          </span>
         </h3>
         {error && <Alert variant="danger">{error}</Alert>}
         <Form onSubmit={handleSubmit}>
@@ -109,7 +120,24 @@ export default function LoginForm({ onLogin }: LoginFormProps): JSX.Element {
             />
           </Form.Group>
           <Button type="submit" variant="primary" className="w-100 mb-3">
-            {isRegister ? 'Registrarse y Entrar' : 'Entrar'}
+            <span className="auth-action">
+              <span
+                className={`auth-action-option${
+                  isRegister ? '' : ' is-active'
+                }`}
+                aria-hidden={isRegister}
+              >
+                Entrar
+              </span>
+              <span
+                className={`auth-action-option${
+                  isRegister ? ' is-active' : ''
+                }`}
+                aria-hidden={!isRegister}
+              >
+                Registrarse y Entrar
+              </span>
+            </span>
           </Button>
           <div className="text-center">
             <Button
