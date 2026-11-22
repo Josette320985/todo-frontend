@@ -10,6 +10,8 @@ export default function TaskFields({ value, onChange, errors = {}, disabled, edi
     <Form.Control id={`${id}-title`} aria-label={editing ? 'Título de la tarea' : 'Nueva tarea'}
       value={value.title} onChange={event => onChange({ ...value, title: event.target.value })}
       placeholder={editing ? undefined : 'Nueva tarea...'} maxLength={200} required
+      // UX-08: entering edit mode puts the cursor in the title right away.
+      autoFocus={editing}
       disabled={disabled} isInvalid={Boolean(errors.title)} aria-describedby={errors.title ? `${id}-title-error` : undefined} />
     <Form.Control.Feedback type="invalid" id={`${id}-title-error`}>{errors.title}</Form.Control.Feedback>
     <Row className="g-2 mt-1">
