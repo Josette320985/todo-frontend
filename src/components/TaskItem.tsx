@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState, type Ref } from 'react';
 import { ListGroup, Form, Button } from 'react-bootstrap';
 import { formatDate, validateDates } from '../lib/dates';
+import { animateRowExit } from '../lib/motion';
 import type { Task, TaskUpdate } from '../types/task';
 import TaskFields, { type TaskDraft } from './TaskFields';
 interface Props {
@@ -12,6 +13,8 @@ interface Props {
 export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, onUpdate, onError, fieldErrors, cooldown = 0 }: Props) {
   const [value, setValue] = useState<TaskDraft>({ title: task.title, start: task.start_date || '', end: task.end_date || '' });
   const [pending, setPending] = useState(false);
+  // react-bootstrap types ListGroup.Item's ref as an anchor; it renders a div.
+  const row = useRef<HTMLElement>(null);
   const startEditing = () => {
     setValue({ title: task.title, start: task.start_date || '', end: task.end_date || '' }); onError(''); onEdit(task.id);
   };
@@ -20,12 +23,19 @@ export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, on
     setPending(true);
     try { return await operation(); } finally { setPending(false); }
   };
+  // Fade and collapse the row first (UX-17); bring it back if the delete fails.
+  const remove = () => run(async () => {
+    const exit = row.current ? await animateRowExit(row.current) : undefined;
+    const removed = await onDelete(task.id);
+    if (!removed) exit?.restore();
+    return removed;
+  });
   const invalid = !value.title.trim() || Boolean(validateDates(value.start, value.end));
   const save = async () => {
     if (invalid) return;
     if (await run(() => onUpdate(task.id, { title: value.title.trim(), start_date: value.start || null, end_date: value.end || null }))) onEdit(null);
   };
-  return <ListGroup.Item>
+  return <ListGroup.Item ref={row as Ref<HTMLAnchorElement>} className="task-row">
     {editing ? <Form onSubmit={event => { event.preventDefault(); void save(); }}>
       <TaskFields value={value} onChange={setValue} errors={fieldErrors} disabled={pending} editing />
       <div className="d-flex gap-2 mt-2">
@@ -45,7 +55,7 @@ export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, on
       </div>
       <div className="d-flex gap-2">
         <Button variant="outline-warning" size="sm" disabled={Boolean(pending || cooldown)} onClick={startEditing}>Modificar</Button>
-        <Button variant="outline-danger" size="sm" disabled={Boolean(pending || cooldown)} onClick={() => void run(() => onDelete(task.id))}>Eliminar</Button>
+        <Button variant="outline-danger" size="sm" disabled={Boolean(pending || cooldown)} onClick={() => void remove()}>Eliminar</Button>
       </div>
     </div>}
   </ListGroup.Item>;
