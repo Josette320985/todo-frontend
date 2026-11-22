@@ -11,6 +11,9 @@ export interface AuthContextValue {
   isLoggedIn: boolean;
   /** Email of the signed-in user, once /auth/me answers (UX-14). */
   userEmail: string | null;
+  /** True while /auth/me is pending. */
+  profileLoading: boolean;
+  transitionPending: boolean;
   /** True when the API rejected the stored token with a 401 (UX-06). */
   sessionExpired: boolean;
   login: (email: string, password: string) => Promise<void>;

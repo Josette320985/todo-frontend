@@ -12,6 +12,8 @@ vi.mock('../api/auth', () => ({ login: vi.fn(), register: vi.fn(), logout: vi.fn
 vi.mock('../api/tasks', () => ({ listTasks: vi.fn().mockResolvedValue([]) }));
 
 beforeEach(() => {
+  vi.mocked(auth.login).mockReset();
+  vi.mocked(auth.register).mockReset();
   vi.mocked(auth.getCurrentUser).mockReset().mockResolvedValue({ id: 1, email: 'jj@example.com' } as never);
   vi.mocked(auth.logout).mockReset().mockImplementation(async () => { localStorage.removeItem('token'); });
 });
@@ -72,4 +74,52 @@ it('does not show the expired notice after a normal logout', async () => {
   await user.click(screen.getByRole('button', { name: 'Cerrar Sesión' }));
   await screen.findByRole('heading', { name: 'Iniciar Sesión' });
   expect(screen.queryByText(/Tu sesión expiró/)).not.toBeInTheDocument();
+});
+
+it('muestra el skeleton en cuanto se pulsa Entrar, sin esperar al login', async () => {
+  let finish!: () => void;
+  vi.mocked(auth.login).mockReturnValue(new Promise<void>(resolve => { finish = resolve; }));
+  const user = userEvent.setup();
+  render(<AuthProvider><App /></AuthProvider>);
+  await user.type(screen.getByLabelText('Email'), 'andre@example.com');
+  await user.type(screen.getByLabelText('Contraseña'), 'Password1');
+  await user.click(screen.getByRole('button', { name: 'Entrar' }));
+
+  expect(screen.getByRole('status', { name: 'Cargando la aplicación' })).toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: 'Iniciar Sesión' })).not.toBeInTheDocument();
+  expect(auth.login).toHaveBeenCalledTimes(1);
+
+  await act(async () => { finish(); });
+  await waitFor(() => expect(screen.queryByRole('status', { name: 'Cargando la aplicación' })).not.toBeInTheDocument());
+  expect(await screen.findByRole('button', { name: 'Cerrar Sesión' })).toBeInTheDocument();
+});
+
+it('vuelve al login con el error si falla el login optimista', async () => {
+  vi.mocked(auth.login).mockRejectedValueOnce({ kind: 'timeout' });
+  const user = userEvent.setup();
+  render(<AuthProvider><App /></AuthProvider>);
+  await user.type(screen.getByLabelText('Email'), 'andre@example.com');
+  await user.type(screen.getByLabelText('Contraseña'), 'Password1');
+  await user.click(screen.getByRole('button', { name: 'Entrar' }));
+
+  expect(await screen.findByText(/tardó demasiado/)).toBeVisible();
+  expect(screen.queryByRole('status', { name: 'Cargando la aplicación' })).not.toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Iniciar Sesión' })).toBeInTheDocument();
+});
+
+it('muestra el skeleton en cuanto se pulsa Cerrar Sesión', async () => {
+  localStorage.setItem('token', 'abc');
+  let finish!: () => void;
+  vi.mocked(auth.logout).mockReturnValue(new Promise<void>(resolve => { finish = resolve; }));
+  const user = userEvent.setup();
+  render(<AuthProvider><App /></AuthProvider>);
+  await screen.findByText('jj@example.com');
+  await user.click(screen.getByRole('button', { name: 'Cerrar Sesión' }));
+
+  expect(screen.getByRole('status', { name: 'Cargando la aplicación' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Cerrar Sesión' })).not.toBeInTheDocument();
+  expect(auth.logout).toHaveBeenCalledTimes(1);
+
+  await act(async () => { finish(); });
+  expect(await screen.findByRole('heading', { name: 'Iniciar Sesión' })).toBeInTheDocument();
 });

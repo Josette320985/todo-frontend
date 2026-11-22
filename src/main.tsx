@@ -4,6 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles.css';
 import App from './App';
 import AuthProvider from './components/AuthProvider';
+import { activateDeferredCss, installReloadOverlay } from './lib/reloadOverlay';
 
 /**
  * Follows the operating system color-scheme preference (UX-22).
@@ -30,6 +31,8 @@ applyTheme(darkModeQuery.matches);
 darkModeQuery.addEventListener('change', (event: MediaQueryListEvent) => {
   applyTheme(event.matches);
 });
+installReloadOverlay();
+activateDeferredCss();
 
 /**
  * Application entry point.
