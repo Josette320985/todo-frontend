@@ -4,6 +4,14 @@ import { formatDate, validateDates } from '../lib/dates';
 import { animateRowExit } from '../lib/motion';
 import type { Task, TaskUpdate } from '../types/task';
 import TaskFields, { type TaskDraft } from './TaskFields';
+// Inline SVG icons (UX-07): no icon library, they inherit the button color.
+const iconProps = { width: 18, height: 18, viewBox: '0 0 16 16', fill: 'currentColor', 'aria-hidden': true, focusable: false } as const;
+function PencilIcon() {
+  return <svg {...iconProps}><path d="M12.15.85a1.5 1.5 0 0 1 2.12 0l.88.88a1.5 1.5 0 0 1 0 2.12L5.5 13.5l-3.5.85.85-3.5zM11.44 3 13 4.56l1.44-1.44-1.56-1.56zm.85 2.27L10.73 3.7 3.76 10.67l-.47 1.98 1.98-.47z" /></svg>;
+}
+function TrashIcon() {
+  return <svg {...iconProps}><path d="M6 1.5h4a.5.5 0 0 1 .5.5v1H14a.5.5 0 0 1 0 1h-.6l-.76 9.9a1.5 1.5 0 0 1-1.5 1.35H4.86a1.5 1.5 0 0 1-1.5-1.35L2.6 4H2a.5.5 0 0 1 0-1h3.5V2a.5.5 0 0 1 .5-.5M6.5 3h3v-.5h-3zM3.6 4l.75 9.82a.5.5 0 0 0 .5.43h6.3a.5.5 0 0 0 .5-.43L12.4 4zm2.9 1.5a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5" /></svg>;
+}
 interface Props {
   task: Task; editing: boolean; onEdit: (id: number | null) => void;
   onToggle: (task: Task) => Promise<boolean>; onDelete: (id: number) => Promise<boolean>;
@@ -53,9 +61,13 @@ export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, on
           {task.end_date && <span>Término: {formatDate(task.end_date)}</span>}
         </div>}
       </div>
-      <div className="d-flex gap-2">
-        <Button variant="outline-warning" size="sm" disabled={Boolean(pending || cooldown)} onClick={startEditing}>Modificar</Button>
-        <Button variant="outline-danger" size="sm" disabled={Boolean(pending || cooldown)} onClick={() => void remove()}>Eliminar</Button>
+      {/* Icon actions (UX-07): the accessible name carries the task title so a
+          screen reader can tell the rows apart; title gives the mouse tooltip. */}
+      <div className="task-actions d-flex gap-1">
+        <Button variant="outline-warning" size="sm" className="icon-button" disabled={Boolean(pending || cooldown)}
+          aria-label={`Modificar: ${task.title}`} title="Modificar" onClick={startEditing}><PencilIcon /></Button>
+        <Button variant="outline-danger" size="sm" className="icon-button" disabled={Boolean(pending || cooldown)}
+          aria-label={`Eliminar: ${task.title}`} title="Eliminar" onClick={() => void remove()}><TrashIcon /></Button>
       </div>
     </div>}
   </ListGroup.Item>;

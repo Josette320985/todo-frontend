@@ -191,3 +191,32 @@
     }
   }
 }
+
+/*
+ * Row actions as icon buttons (UX-07).
+ *
+ * Every button keeps a 40x40 px touch target. On devices with a precise
+ * pointer that can hover (mouse, trackpad) the actions stay dimmed until the
+ * row is hovered or one of its controls has keyboard focus, so the list reads
+ * calmer; on touch screens they are always fully visible.
+ */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .task-actions {
+    opacity: 0.45;
+    transition: opacity var(--duration-base) var(--ease-out);
+  }
+
+  .task-row:hover .task-actions,
+  .task-row:focus-within .task-actions {
+    opacity: 1;
+  }
+}
