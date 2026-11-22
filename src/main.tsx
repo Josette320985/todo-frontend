@@ -4,6 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles.css';
 import App from './App';
 import AuthProvider from './components/AuthProvider';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { activateDeferredCss, installReloadOverlay } from './lib/reloadOverlay';
 
 /**
@@ -45,8 +46,10 @@ activateDeferredCss();
  */
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </ErrorBoundary>
   </StrictMode>,
 );
