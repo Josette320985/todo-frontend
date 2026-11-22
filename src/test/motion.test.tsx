@@ -82,7 +82,7 @@ it('brings the row back when the delete request fails', async () => {
     render(<TaskItem task={task} editing={false} onEdit={vi.fn()} onToggle={vi.fn()} onDelete={onDelete}
       onUpdate={vi.fn()} onError={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+    await user.click(screen.getByRole('button', { name: 'Eliminar: No se borra' }));
 
     await waitFor(() => expect(onDelete).toHaveBeenCalledWith(3));
     await waitFor(() => expect(cancels[0]).toHaveBeenCalled());

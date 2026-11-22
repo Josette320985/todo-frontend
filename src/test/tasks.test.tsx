@@ -26,19 +26,19 @@ it('preserves create, toggle, edit, cancel and delete', async () => {
   await screen.findByText('Primera');
   await user.click(screen.getByRole('checkbox'));
   await waitFor(() => expect(screen.getByRole('checkbox')).toBeChecked());
-  await user.click(screen.getByRole('button', { name: 'Modificar' }));
+  await user.click(screen.getByRole('button', { name: 'Modificar: Primera' }));
   let row = screen.getByRole('button', { name: 'Guardar' }).closest('.list-group-item')!;
   await user.clear(within(row as HTMLElement).getByRole('textbox'));
   await user.type(within(row as HTMLElement).getByRole('textbox'), 'Descartada');
   await user.click(screen.getByRole('button', { name: 'Cancelar' }));
   expect(screen.getByText('Primera')).toBeInTheDocument();
-  await user.click(screen.getByRole('button', { name: 'Modificar' }));
+  await user.click(screen.getByRole('button', { name: 'Modificar: Primera' }));
   row = screen.getByRole('button', { name: 'Guardar' }).closest('.list-group-item')!;
   await user.clear(within(row as HTMLElement).getByRole('textbox'));
   await user.type(within(row as HTMLElement).getByRole('textbox'), 'Editada');
   await user.click(screen.getByRole('button', { name: 'Guardar' }));
   await screen.findByText('Editada');
-  await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+  await user.click(screen.getByRole('button', { name: 'Eliminar: Editada' }));
   await screen.findByText('Aún no tienes tareas. Escribe la primera arriba.');
 });
 it('removes a stale task after a 404 from delete', async () => {
@@ -48,7 +48,7 @@ it('removes a stale task after a 404 from delete', async () => {
   try {
     const user = userEvent.setup(); render(<TaskList />);
     await screen.findByText('Eliminada en otra pestaña');
-    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+    await user.click(screen.getByRole('button', { name: 'Eliminar: Eliminada en otra pestaña' }));
     await screen.findByText('Esta tarea ya no existe');
     expect(screen.queryByText('Eliminada en otra pestaña')).not.toBeInTheDocument();
   } finally { spy.mockRestore(); }
