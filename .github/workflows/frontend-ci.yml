@@ -1,6 +1,5 @@
 # Frontend CI (TEST-10): type checking, lint, build and dependency audit.
 # Runs on every pull request and on pushes to the integration branches.
-# Unit tests (vitest run) are added here when TEST-07 sets up Vitest.
 name: frontend-ci
 
 on:
@@ -17,7 +16,7 @@ concurrency:
 
 jobs:
   build:
-    name: tsc + eslint + build + audit
+    name: tsc + eslint + vitest + build + audit
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -37,6 +36,10 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      # Unit and component tests with Vitest + Testing Library (TEST-07).
+      - name: Tests
+        run: npm test
 
       - name: Build
         run: npm run build
