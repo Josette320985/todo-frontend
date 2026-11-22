@@ -1,3 +1,9 @@
+/** Cheap input guards only: the server owns email syntax and Unicode/IDNA rules. */
+export function validateEmail(value: string): string {
+  if (!value.trim()) return 'Ingresa tu correo electrónico.';
+  return Array.from(value.trim()).length > 2048 ? 'El correo electrónico es demasiado largo.' : '';
+}
+
 export function validateTitle(value: string): string {
   if (!value.trim()) return 'El título no puede estar vacío.';
   return Array.from(value).length > 200 ? 'El título no puede superar 200 caracteres.' : '';

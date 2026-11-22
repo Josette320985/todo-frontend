@@ -9,7 +9,7 @@ import type { Task } from '../types/task';
 import { renderWithAuth } from './renderWithAuth';
 import * as auth from '../api/auth';
 
-vi.mock('../api/auth', () => ({ login: vi.fn(), register: vi.fn(), getCurrentUser: vi.fn().mockResolvedValue({ email: 'user@example.com' }) }));
+vi.mock('../api/auth', () => ({ login: vi.fn(), register: vi.fn(), validateRegistrationEmail: vi.fn(async (email: string) => ({ valid: true, normalized: email })), getCurrentUser: vi.fn().mockResolvedValue({ email: 'user@example.com' }) }));
 
 beforeEach(() => { vi.mocked(auth.login).mockReset(); vi.mocked(auth.register).mockReset(); });
 
