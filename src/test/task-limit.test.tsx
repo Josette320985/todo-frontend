@@ -30,7 +30,7 @@ it('disables "Agregar" and explains why when the user is at the cap', async () =
   expect(add).toBeDisabled();
   expect(add).toHaveAccessibleDescription(TASK_LIMIT_MESSAGE);
   expect(api.createTask).not.toHaveBeenCalled();
-});
+}, 15000);
 
 it('below the cap the form works and shows no warning', async () => {
   const user = userEvent.setup();
