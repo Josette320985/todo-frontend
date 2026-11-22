@@ -62,3 +62,21 @@
   transform: scale(0.97);
   transition-duration: 60ms;
 }
+
+/*
+ * Completing a task (UX-18).
+ *
+ * Marking a task is a high-frequency action, so the label only fades its
+ * color and the color of the strike-through; no bounce or scale. React
+ * Bootstrap renders the <input> immediately before its <label>, which lets
+ * the checked state style the text without adding JSX.
+ */
+.form-check-label {
+  transition:
+    color var(--duration-fast) ease,
+    text-decoration-color var(--duration-fast) ease;
+}
+
+.form-check-input:checked + .form-check-label {
+  color: var(--bs-secondary-color);
+}
