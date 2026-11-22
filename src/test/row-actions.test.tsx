@@ -1,6 +1,5 @@
 import { expect, it, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import TaskList from '../components/TaskList';
 import * as api from '../api/tasks';
 import type { Task } from '../types/task';
@@ -12,8 +11,10 @@ const task = (id: number, title: string): Task =>
   ({ id, title, description: null, completed: false, start_date: null, end_date: null });
 
 beforeEach(() => {
-  vi.mocked(api.listTasks).mockResolvedValue([task(1, 'Comprar pan'), task(2, 'Pagar luz')]);
-  vi.mocked(api.removeTask).mockResolvedValue();
+  vi.mocked(api.listTasks).mockReset().mockResolvedValue([task(1, 'Comprar pan'), task(2, 'Pagar luz')]);
+  vi.mocked(api.createTask).mockReset();
+  vi.mocked(api.updateTask).mockReset();
+  vi.mocked(api.removeTask).mockReset().mockResolvedValue();
 });
 
 it('names each icon button after its task, so rows are distinguishable', async () => {
@@ -40,10 +41,20 @@ it('shows icons instead of text, with a tooltip and a 40px touch target class', 
   }
 });
 
-it('the delete icon removes the right task', async () => {
-  const user = userEvent.setup();
+it('hides the row now and sends DELETE when the toast expires', async () => {
   render(<TaskList />);
-  await user.click(await screen.findByRole('button', { name: 'Eliminar: Pagar luz' }));
+  await screen.findByRole('button', { name: 'Eliminar: Pagar luz' });
+  vi.useFakeTimers();
+  try {
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar: Pagar luz' }));
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.queryByText('Pagar luz')).not.toBeInTheDocument();
+    expect(screen.getByText('Tarea eliminada ·')).toBeInTheDocument();
+    expect(api.removeTask).not.toHaveBeenCalled();
 
-  expect(api.removeTask).toHaveBeenCalledWith(2);
+    await act(async () => { vi.advanceTimersByTime(5000); });
+    expect(api.removeTask).toHaveBeenCalledWith(2);
+  } finally {
+    vi.useRealTimers();
+  }
 });

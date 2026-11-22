@@ -1,5 +1,5 @@
 import { expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TaskList from '../components/TaskList';
 import * as api from '../api/tasks';
@@ -19,6 +19,17 @@ beforeEach(() => {
   });
   vi.mocked(api.removeTask).mockImplementation(async id => { rows = rows.filter(task => task.id !== id); });
 });
+
+async function deleteAndExpire(title: string) {
+  vi.useFakeTimers();
+  try {
+    fireEvent.click(screen.getByRole('button', { name: `Eliminar: ${title}` }));
+    await act(async () => { await Promise.resolve(); });
+    await act(async () => { vi.advanceTimersByTime(5000); });
+  } finally {
+    vi.useRealTimers();
+  }
+}
 it('preserves create, toggle, edit, cancel and delete', async () => {
   const user = userEvent.setup(); render(<TaskList />);
   await screen.findByText('Aún no tienes tareas. Escribe la primera arriba.');
@@ -39,7 +50,7 @@ it('preserves create, toggle, edit, cancel and delete', async () => {
   await user.type(within(row as HTMLElement).getByRole('textbox', { name: 'Título de la tarea' }), 'Editada');
   await user.click(screen.getByRole('button', { name: 'Guardar' }));
   await screen.findByText('Editada');
-  await user.click(screen.getByRole('button', { name: 'Eliminar: Editada' }));
+  await deleteAndExpire('Editada');
   await screen.findByText('Aún no tienes tareas. Escribe la primera arriba.');
 });
 it('removes a stale task after a 404 from delete', async () => {
@@ -47,9 +58,9 @@ it('removes a stale task after a 404 from delete', async () => {
   vi.mocked(api.removeTask).mockRejectedValueOnce({ status: 404 });
   const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
   try {
-    const user = userEvent.setup(); render(<TaskList />);
+    render(<TaskList />);
     await screen.findByText('Eliminada en otra pestaña');
-    await user.click(screen.getByRole('button', { name: 'Eliminar: Eliminada en otra pestaña' }));
+    await deleteAndExpire('Eliminada en otra pestaña');
     await screen.findByText('Esta tarea ya no existe');
     expect(screen.queryByText('Eliminada en otra pestaña')).not.toBeInTheDocument();
   } finally { spy.mockRestore(); }
@@ -86,7 +97,7 @@ it('uses mutation responses without reloading the whole list', async () => {
   await user.click(screen.getByRole('button', { name: 'Guardar' }));
   await screen.findByText('Editada');
 
-  await user.click(screen.getByRole('button', { name: 'Eliminar: Editada' }));
+  await deleteAndExpire('Editada');
   await screen.findByText('Aún no tienes tareas. Escribe la primera arriba.');
   expect(api.listTasks).toHaveBeenCalledTimes(1);
 });
@@ -142,10 +153,9 @@ it('restores a row when DELETE fails', async () => {
   vi.mocked(api.removeTask).mockImplementationOnce(() => new Promise<void>((_resolve, reject) => { rejectDelete = reject; }));
   const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
   try {
-    const user = userEvent.setup(); render(<TaskList />);
+    render(<TaskList />);
     await screen.findByText('Segunda');
-    await user.click(screen.getByRole('button', { name: 'Eliminar: Primera' }));
-    expect(screen.queryByText('Primera')).not.toBeInTheDocument();
+    await deleteAndExpire('Primera');
     expect(api.listTasks).toHaveBeenCalledTimes(1);
 
     rejectDelete({ status: 500 });
