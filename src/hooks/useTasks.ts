@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as api from '../api/tasks';
 import { logApiError } from '../api/logError';
-import { getApiError } from '../api/errors';
+import { getApiError, getFormErrorMessage } from '../api/errors';
 import { isPendingFirstSort, sortPendingFirst } from '../lib/taskOrder';
 import { useCooldown } from './useCooldown';
 import type { Task, TaskCreate, TaskSortField, TaskSortParams, TaskUpdate } from '../types/task';
@@ -77,11 +77,11 @@ export function useTasks(sort: TaskSortParams = {}) {
     void load();
     return () => { mounted.current = false; };
   }, [load]);
-  const reportError = useCallback((err: unknown, id?: number): false => {
+  const reportError = useCallback((err: unknown, id?: number, visibleFields: string[] = []): false => {
     if (!mounted.current) return false;
     const info = getApiError(err);
     logApiError('Error modificando tarea', err);
-    setErrorMessage(info.message);
+    setErrorMessage(getFormErrorMessage(info, visibleFields));
     setFieldErrors(info.fieldErrors);
     setErrorId(id);
     start(info.retryAfter);
@@ -95,7 +95,7 @@ export function useTasks(sort: TaskSortParams = {}) {
       setError('');
       return true;
     } catch (err) {
-      return reportError(err);
+      return reportError(err, undefined, ['title', 'start_date', 'end_date']);
     }
   }, [reportError, setError, updateList]);
   const update = useCallback(async (id: number, data: TaskUpdate): Promise<boolean> => {
@@ -115,7 +115,7 @@ export function useTasks(sort: TaskSortParams = {}) {
           ? current.filter(task => task.id !== id)
           : current.map(task => task.id === id ? previous : task));
       }
-      return reportError(err, id);
+      return reportError(err, id, data.title === undefined ? [] : ['title', 'description', 'start_date', 'end_date']);
     }
   }, [reportError, setError, updateList]);
   const remove = useCallback(async (id: number): Promise<boolean> => {
