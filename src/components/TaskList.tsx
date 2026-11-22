@@ -1,12 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Card, Alert, Button, ListGroup, Toast, ToastContainer } from 'react-bootstrap';
 import { useTasks } from '../hooks/useTasks';
-import type { Task } from '../types/task';
+import type { Task, TaskSortParams } from '../types/task';
+import { DEFAULT_TASK_FILTER, EMPTY_FILTER_MESSAGE, filterTasks, type TaskFilter as Filter } from '../lib/taskFilter';
+import TaskFilter from './TaskFilter';
 import TaskForm from './TaskForm';
 import TaskItem from './TaskItem';
 import { MAX_TASKS_PER_USER } from '../lib/limits';
 
 const UNDO_DELAY_MS = 5000;
+
+// TEMPORARY test variable: sorting passed to useTasks until the sort control
+// exists. Pending first, completed last: the backend applies these fields in
+// sequence (completed, end_date with undated last, id), the same order as its
+// OPT-02 fallback. The frontend does not re-sort the result.
+const TEST_SORT: TaskSortParams = { sortBy: ['completed', 'end_date', 'id'], order: 'asc' };
 
 /** Three grey rows shaped like tasks while the list loads (UX-01). */
 function TaskListSkeleton() {
@@ -25,11 +33,14 @@ function TaskListSkeleton() {
 }
 
 export default function TaskList() {
-  const { tasks, status, retry, error, fieldErrors, errorId, remaining, setError, create, update, remove, toggle } = useTasks();
+  const { tasks, status, retry, error, fieldErrors, errorId, remaining, setError, create, update, remove, toggle } = useTasks(TEST_SORT);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [pendingDeletes, setPendingDeletes] = useState<Task[]>([]);
+  // View filter: local state only, the backend is never involved.
+  const [filter, setFilter] = useState<Filter>(DEFAULT_TASK_FILTER);
   const hiddenIds = useMemo(() => new Set(pendingDeletes.map(task => task.id)), [pendingDeletes]);
   const visibleTasks = tasks.filter(task => !hiddenIds.has(task.id));
+  const shownTasks = filterTasks(visibleTasks, filter);
 
   const requestDelete = useCallback(async (id: number): Promise<boolean> => {
     const task = tasks.find(item => item.id === id);
@@ -117,13 +128,18 @@ export default function TaskList() {
             <Button variant="outline-danger" size="sm" onClick={() => void retry()}>Reintentar</Button>
           </Alert>
         )}
+        {status === 'ready' && tasks.length > 0 && <TaskFilter value={filter} onChange={setFilter} />}
         {status === 'ready' && (tasks.length === 0
           ? <p className="text-muted text-center py-3 mb-0">Aún no tienes tareas. Escribe la primera arriba.</p>
-          : visibleTasks.length > 0 && <ListGroup>
-            {visibleTasks.map(task => <TaskItem key={task.id} task={task} editing={editingId === task.id}
-              onEdit={setEditingId} onToggle={toggle} onDelete={requestDelete} onUpdate={update} onError={setError}
-              fieldErrors={errorId === task.id ? fieldErrors : {}} cooldown={remaining} />)}
-          </ListGroup>)}
+          : shownTasks.length > 0
+            ? <ListGroup>
+              {shownTasks.map(task => <TaskItem key={task.id} task={task} editing={editingId === task.id}
+                onEdit={setEditingId} onToggle={toggle} onDelete={requestDelete} onUpdate={update} onError={setError}
+                fieldErrors={errorId === task.id ? fieldErrors : {}} cooldown={remaining} />)}
+            </ListGroup>
+            : visibleTasks.length > 0 && filter !== 'all' && (
+              <p className="text-muted text-center py-3 mb-0">{EMPTY_FILTER_MESSAGE[filter]}</p>
+            ))}
       </Card.Body>
     </Card>
     <ToastContainer position="bottom-center" className="p-3">
