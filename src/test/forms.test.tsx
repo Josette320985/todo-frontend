@@ -46,7 +46,7 @@ it('shows timeout and re-enables login without submitting twice', async () => {
   await user.type(screen.getByLabelText('Email'), 'andre@example.com');
   await user.type(screen.getByLabelText('Contraseña'), 'Password1');
   await user.click(screen.getByRole('button', { name: 'Entrar' }));
-  expect(screen.getByRole('button', { name: 'Enviando...' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Entrando…' })).toBeDisabled();
   reject({ kind: 'timeout' });
   expect(await screen.findByText(/tardó demasiado/)).toBeVisible();
   expect(screen.getByRole('button', { name: 'Entrar' })).toBeEnabled();
