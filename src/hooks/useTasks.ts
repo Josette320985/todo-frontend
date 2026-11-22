@@ -8,8 +8,20 @@ import type { Task, TaskCreate, TaskUpdate } from '../types/task';
 /** Lifecycle of the task list itself (UX-01), separate from action errors. */
 export type ListStatus = 'loading' | 'ready' | 'error';
 
+function applyUpdate(task: Task, data: TaskUpdate): Task {
+  return {
+    id: task.id,
+    title: data.title === undefined || data.title === null ? task.title : data.title,
+    description: data.description === undefined ? task.description : data.description,
+    completed: data.completed === undefined || data.completed === null ? task.completed : data.completed,
+    start_date: data.start_date === undefined ? task.start_date : data.start_date,
+    end_date: data.end_date === undefined ? task.end_date : data.end_date,
+  };
+}
+
 export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const tasksRef = useRef<Task[]>([]);
   const [status, setStatus] = useState<ListStatus>('loading');
   const [error, setErrorMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -18,12 +30,19 @@ export function useTasks() {
   const setError = useCallback((message: string) => { setErrorMessage(message); setFieldErrors({}); }, []);
   const mounted = useRef(false);
   const request = useRef(0);
+  const applyTasks = useCallback((next: Task[]) => {
+    tasksRef.current = next;
+    setTasks(next);
+  }, []);
+  const updateList = useCallback((change: (current: Task[]) => Task[]) => {
+    applyTasks(change(tasksRef.current));
+  }, [applyTasks]);
   // Only the latest request may update the list; any successful load makes it ready.
   const reload = useCallback(async () => {
     const id = ++request.current;
     const data = await api.listTasks();
-    if (mounted.current && id === request.current) { setTasks(data); setStatus('ready'); }
-  }, []);
+    if (mounted.current && id === request.current) { applyTasks(data); setStatus('ready'); }
+  }, [applyTasks]);
   // Initial load and "Reintentar": a failure shows the list error state, not the action alert.
   const load = useCallback(async () => {
     const id = request.current + 1;
@@ -34,30 +53,72 @@ export function useTasks() {
   const retry = useCallback(() => { setStatus('loading'); return load(); }, [load]);
   useEffect(() => {
     mounted.current = true;
-    void load(); // status starts as 'loading'
+    void load();
     return () => { mounted.current = false; };
   }, [load]);
-  const mutate = useCallback(async (operation: () => Promise<unknown>, id?: number) => {
+  const reportError = useCallback((err: unknown, id?: number): false => {
+    if (!mounted.current) return false;
+    const info = getApiError(err);
+    logApiError('Error modificando tarea', err);
+    setErrorMessage(info.message);
+    setFieldErrors(info.fieldErrors);
+    setErrorId(id);
+    start(info.retryAfter);
+    return false;
+  }, [start]);
+  const create = useCallback(async (data: TaskCreate): Promise<boolean> => {
     try {
-      await operation();
+      const created = await api.createTask(data);
       if (!mounted.current) return false;
+      updateList(current => [...current, created]);
       setError('');
-      // The mutation already succeeded: a failed refresh must not invite a duplicate POST.
-      await reload().catch(err => { if (mounted.current) setError(getApiError(err).message); });
+      return true;
+    } catch (err) {
+      return reportError(err);
+    }
+  }, [reportError, setError, updateList]);
+  const update = useCallback(async (id: number, data: TaskUpdate): Promise<boolean> => {
+    const previous = tasksRef.current.find(task => task.id === id);
+    if (!previous) return reportError({ status: 404 }, id);
+    updateList(current => current.map(task => task.id === id ? applyUpdate(task, data) : task));
+    try {
+      const saved = await api.updateTask(id, data);
+      if (!mounted.current) return false;
+      updateList(current => current.map(task => task.id === id ? saved : task));
+      setError('');
       return true;
     } catch (err) {
       if (mounted.current) {
         const info = getApiError(err);
-        logApiError('Error modificando tarea', err);
-        setErrorMessage(info.message); setFieldErrors(info.fieldErrors); setErrorId(id); start(info.retryAfter);
-        if (info.status === 404 && id !== undefined) setTasks(current => current.filter(task => task.id !== id));
+        updateList(current => info.status === 404
+          ? current.filter(task => task.id !== id)
+          : current.map(task => task.id === id ? previous : task));
       }
-      return false;
+      return reportError(err, id);
     }
-  }, [reload, setError, start]);
-  const create = useCallback((data: TaskCreate) => mutate(() => api.createTask(data)), [mutate]);
-  const update = useCallback((id: number, data: TaskUpdate) => mutate(() => api.updateTask(id, data), id), [mutate]);
-  const remove = useCallback((id: number) => mutate(() => api.removeTask(id), id), [mutate]);
+  }, [reportError, setError, updateList]);
+  const remove = useCallback(async (id: number): Promise<boolean> => {
+    const previousIndex = tasksRef.current.findIndex(task => task.id === id);
+    if (previousIndex < 0) return reportError({ status: 404 }, id);
+    const previous = tasksRef.current[previousIndex];
+    updateList(current => current.filter(task => task.id !== id));
+    try {
+      await api.removeTask(id);
+      if (!mounted.current) return false;
+      setError('');
+      return true;
+    } catch (err) {
+      if (mounted.current && getApiError(err).status !== 404) {
+        updateList(current => {
+          if (current.some(task => task.id === id)) return current;
+          const restored = [...current];
+          restored.splice(Math.min(previousIndex, restored.length), 0, previous);
+          return restored;
+        });
+      }
+      return reportError(err, id);
+    }
+  }, [reportError, setError, updateList]);
   const toggle = useCallback((task: Task) => update(task.id, { completed: !task.completed }), [update]);
   return { tasks, status, retry, error, fieldErrors, errorId, remaining, setError, create, update, remove, toggle };
 }
