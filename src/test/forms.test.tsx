@@ -7,8 +7,40 @@ import TaskForm from '../components/TaskForm';
 import * as auth from '../api/auth';
 import { validatePassword } from '../lib/validation';
 import { validateDate } from '../lib/dates';
-vi.mock('../api/auth', () => ({ login: vi.fn(), register: vi.fn(), getCurrentUser: vi.fn().mockResolvedValue({ email: 'user@example.com' }) }));
+vi.mock('../api/auth', () => ({ login: vi.fn(), register: vi.fn(), validateRegistrationEmail: vi.fn(async (email: string) => ({ valid: true, normalized: email })), getCurrentUser: vi.fn().mockResolvedValue({ email: 'user@example.com' }) }));
 beforeEach(() => { vi.mocked(auth.login).mockReset(); vi.mocked(auth.register).mockReset(); });
+it('rejects a backend-invalid email inline before registering and accepts a corrected IDN', async () => {
+  vi.mocked(auth.validateRegistrationEmail)
+    .mockResolvedValueOnce({ valid: false, message: 'El email no es válido' })
+    .mockResolvedValueOnce({ valid: true, normalized: 'josé@bücher.de' });
+  const user = userEvent.setup(); renderWithAuth(<LoginForm />);
+  await user.click(screen.getByRole('button', { name: '¿No tienes cuenta? Regístrate' }));
+  await user.type(screen.getByLabelText('Email'), 'a..b@example.com');
+  await user.type(screen.getByLabelText('Contraseña'), 'Password1');
+  await user.click(screen.getByRole('button', { name: 'Registrarse y Entrar' }));
+  expect(await screen.findByText('El email no es válido')).toHaveClass('invalid-feedback');
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(auth.register).not.toHaveBeenCalled();
+  expect(screen.getByRole('button', { name: 'Registrarse y Entrar' })).toBeDisabled();
+  await user.clear(screen.getByLabelText('Email'));
+  await user.type(screen.getByLabelText('Email'), 'josé@xn--bcher-kva.de');
+  expect(screen.getByLabelText('Email')).toHaveAttribute('inputmode', 'email');
+  await user.click(screen.getByRole('button', { name: 'Registrarse y Entrar' }));
+  expect(auth.register).toHaveBeenCalledWith({ email: 'josé@bücher.de', password: 'Password1' });
+  expect(auth.login).toHaveBeenCalledWith('josé@bücher.de', 'Password1');
+});
+it('keeps registration closed on a failed email check and allows retry', async () => {
+  vi.mocked(auth.validateRegistrationEmail).mockRejectedValueOnce({ kind: 'network' });
+  const user = userEvent.setup(); renderWithAuth(<LoginForm />);
+  await user.click(screen.getByRole('button', { name: '¿No tienes cuenta? Regístrate' }));
+  await user.type(screen.getByLabelText('Email'), 'valid@example.com');
+  await user.type(screen.getByLabelText('Contraseña'), 'Password1');
+  await user.click(screen.getByRole('button', { name: 'Registrarse y Entrar' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('No hay conexión');
+  expect(auth.register).not.toHaveBeenCalled();
+  expect(screen.getByRole('button', { name: 'Registrarse y Entrar' })).toBeEnabled();
+  expect(screen.getByLabelText('Email')).toHaveValue('valid@example.com');
+});
 it('guards oversized titles and invalid calendar dates before submission', async () => {
   const create = vi.fn(); render(<TaskForm onCreate={create} onError={vi.fn()} />);
   fireEvent.change(screen.getByPlaceholderText('Nueva tarea...'), { target: { value: 'a'.repeat(201) } });

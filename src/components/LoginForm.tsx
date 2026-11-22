@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { Form, Button, Alert, Card } from 'react-bootstrap';
 import { getApiError, getFormErrorMessage } from '../api/errors';
-import { validatePassword } from '../lib/validation';
+import { validateEmail, validatePassword } from '../lib/validation';
+import { validateRegistrationEmail } from '../api/auth';
 import { useCooldown } from '../hooks/useCooldown';
 import { useAuth } from '../hooks/useAuth';
 
@@ -15,13 +16,20 @@ export default function LoginForm() {
   const [pending, setPending] = useState(false);
   const { remaining, start } = useCooldown();
   const passwordError = isRegister && password ? validatePassword(password) : '';
+  const emailError = isRegister ? validateEmail(email) || fields.email || fields.username || '' : '';
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (pending || remaining || (isRegister && validatePassword(password))) return;
+    if (pending || remaining || (isRegister && (emailError || validatePassword(password)))) return;
     setPending(true); setError(''); setFields({});
     try {
-      if (isRegister) { await register({ email: email.trim(), password }); setIsRegister(false); }
-      await login(email.trim(), password);
+      let submittedEmail = email.trim();
+      if (isRegister) {
+        const result = await validateRegistrationEmail(submittedEmail);
+        if (!result.valid) { setFields({ email: result.message }); return; }
+        submittedEmail = result.normalized;
+        await register({ email: submittedEmail, password }); setIsRegister(false);
+      }
+      await login(submittedEmail, password);
     } catch (err) {
       const info = getApiError(err); setError(getFormErrorMessage(info, ['email', 'username', 'password'])); setFields(info.fieldErrors); start(info.retryAfter);
     } finally { setPending(false); }
@@ -35,10 +43,10 @@ export default function LoginForm() {
     <Form onSubmit={handleSubmit}>
       <Form.Group className="mb-3" controlId="auth-email">
         <Form.Label>Email</Form.Label>
-        <Form.Control type="email" value={email} required autoComplete="email" maxLength={254} disabled={pending}
-          isInvalid={Boolean(fields.email || fields.username)} aria-describedby="email-error"
+        <Form.Control type="text" inputMode="email" autoCapitalize="none" spellCheck={false} value={email} required autoComplete="email" maxLength={2048} disabled={pending}
+          isInvalid={Boolean((email && emailError) || fields.email || fields.username)} aria-describedby="email-error"
           onChange={event => { setEmail(event.target.value); setFields({}); }} />
-        <Form.Control.Feedback type="invalid" id="email-error" aria-live="polite">{fields.email || fields.username}</Form.Control.Feedback>
+        <Form.Control.Feedback type="invalid" id="email-error" aria-live="polite">{(email && emailError) || fields.email || fields.username}</Form.Control.Feedback>
       </Form.Group>
       <Form.Group className="mb-3" controlId="auth-password">
         <Form.Label>Contraseña</Form.Label>
@@ -49,7 +57,7 @@ export default function LoginForm() {
         {isRegister && <Form.Text id="password-help">Mínimo 8 caracteres, con al menos una letra y un número. Máximo 72 bytes UTF-8.</Form.Text>}
         <Form.Control.Feedback type="invalid" id="password-error" aria-live="polite">{passwordError || fields.password}</Form.Control.Feedback>
       </Form.Group>
-      <Button type="submit" variant="primary" className="w-100 mb-3" disabled={Boolean(pending || remaining || passwordError)}>
+      <Button type="submit" variant="primary" className="w-100 mb-3" disabled={Boolean(pending || remaining || passwordError || emailError)}>
         {pending ? (isRegister ? 'Creando cuenta…' : 'Entrando…') : remaining ? `Espera ${remaining} s` : <span className="auth-action">
           <span className={`auth-action-option${isRegister ? '' : ' is-active'}`} aria-hidden={isRegister}>Entrar</span>
           <span className={`auth-action-option${isRegister ? ' is-active' : ''}`} aria-hidden={!isRegister}>Registrarse y Entrar</span>
