@@ -24,3 +24,16 @@
   --focus-ring-width: 0.25rem;
   --focus-ring-color: rgba(var(--bs-primary-rgb), 0.25);
 }
+
+/*
+ * Dark mode (UX-22).
+ *
+ * Bootstrap 5.3 restyles its own components from [data-bs-theme="dark"];
+ * main.tsx sets that attribute from prefers-color-scheme. The only legacy
+ * utility left in the app shell is .bg-light, which is a fixed color and
+ * would keep the page white in dark mode, so it is mapped to the themed
+ * body background here instead of editing App.tsx (shared with UX-06/14).
+ */
+[data-bs-theme='dark'] .bg-light {
+  background-color: var(--bs-body-bg) !important;
+}
