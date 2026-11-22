@@ -2,6 +2,11 @@
 
 User interface for the To-Do List application, built with **React, Vite, and Bootstrap**.
 
+## Documentación del equipo 3
+
+- [Resumen de mejoras, validaciones y pendientes](docs/equipo3/resumen-mejoras.md)
+- [Registro de integración](docs/INTEGRACION-EQUIPO3.md)
+
 > **Note:** To run the complete application (Frontend + Backend) using Docker, refer to the deployment instructions in the `README.md` file of the **`todo-backend`** repository.
 
 ---

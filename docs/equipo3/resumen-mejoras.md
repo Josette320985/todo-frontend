@@ -1,4 +1,13 @@
-# Tareas de Andre Chacon
+# Resumen de mejoras del equipo 3
+
+Documento histórico de implementación. Los cambios se integraron en `equipo3`
+mediante el [Pull Request #15](https://github.com/Josette320985/todo-frontend/pull/15).
+Los estados locales de las tablas siguientes corresponden a la revisión previa
+al merge; véase el [registro de integración](../INTEGRACION-EQUIPO3.md).
+
+Mantenimiento posterior: la consulta de identidad agregada por UX-14 se canaliza
+mediante `auth.getCurrentUser()` para conservar la separación de la API y corregir
+la referencia no definida a `api` que impedía compilar tras integrar esa historia.
 
 Rama: `andre/tareas-asignadas`, derivada de `andre/rendimiento` y `origin/equipo3`.
 Estado: implementación local, pendiente de revisión y merge a equipo3. No se
