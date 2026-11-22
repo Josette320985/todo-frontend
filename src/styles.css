@@ -220,3 +220,44 @@
     opacity: 1;
   }
 }
+
+/*
+ * Task description under the title (UX-12): at most two lines, the rest is
+ * cut with an ellipsis. Line breaks typed by the user are kept.
+ */
+.task-description {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  white-space: pre-line;
+}
+
+/*
+ * Long texts and small screens (UX-13).
+ *
+ * A flex child does not shrink below its content by default, so a 200
+ * character title without spaces pushed the buttons out of the card.
+ * min-width: 0 lets the text column shrink and overflow-wrap breaks the
+ * word anywhere. Below 576 px the buttons wrap under the title instead of
+ * squeezing it, and inputs use 16 px text so iOS does not zoom on focus.
+ */
+.task-main {
+  flex: 1 1 12rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.task-actions {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+@media (max-width: 575.98px) {
+  .form-control,
+  .form-control-sm,
+  .form-select {
+    font-size: 1rem;
+  }
+}

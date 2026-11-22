@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type Ref } from 'react';
-import { ListGroup, Form, Button } from 'react-bootstrap';
-import { formatDate, validateDates } from '../lib/dates';
+import { ListGroup, Form, Button, Badge } from 'react-bootstrap';
+import { dueStatus, formatDate, validateDates } from '../lib/dates';
 import { animateRowExit } from '../lib/motion';
 import type { Task, TaskUpdate } from '../types/task';
 import TaskFields, { type TaskDraft } from './TaskFields';
@@ -19,7 +19,7 @@ interface Props {
   fieldErrors?: Record<string, string>; cooldown?: number;
 }
 export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, onUpdate, onError, fieldErrors, cooldown = 0 }: Props) {
-  const [value, setValue] = useState<TaskDraft>({ title: task.title, start: task.start_date || '', end: task.end_date || '' });
+  const [value, setValue] = useState<TaskDraft>({ title: task.title, description: task.description || '', start: task.start_date || '', end: task.end_date || '' });
   const [pending, setPending] = useState(false);
   // react-bootstrap types ListGroup.Item's ref as an anchor; it renders a div.
   const row = useRef<HTMLElement>(null);
@@ -41,7 +41,7 @@ export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, on
     if (event.key === 'Escape' && !pending) { event.preventDefault(); cancel(); }
   };
   const startEditing = () => {
-    setValue({ title: task.title, start: task.start_date || '', end: task.end_date || '' }); onError(''); onEdit(task.id);
+    setValue({ title: task.title, description: task.description || '', start: task.start_date || '', end: task.end_date || '' }); onError(''); onEdit(task.id);
   };
   const run = async (operation: () => Promise<boolean>) => {
     if (pending || cooldown) return false;
@@ -55,10 +55,11 @@ export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, on
     if (!removed) exit?.restore();
     return removed;
   });
+  const due = dueStatus(task.end_date, task.completed);
   const invalid = !value.title.trim() || Boolean(validateDates(value.start, value.end));
   const save = async () => {
     if (invalid) return;
-    if (await run(() => onUpdate(task.id, { title: value.title.trim(), start_date: value.start || null, end_date: value.end || null }))) close();
+    if (await run(() => onUpdate(task.id, { title: value.title.trim(), description: value.description.trim() || null, start_date: value.start || null, end_date: value.end || null }))) close();
   };
   return <ListGroup.Item ref={row as Ref<HTMLAnchorElement>} className="task-row">
     {editing ? <Form onSubmit={event => { event.preventDefault(); void save(); }} onKeyDown={onEditorKeyDown}>
@@ -67,15 +68,18 @@ export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, on
         <Button type="submit" variant="success" size="sm" disabled={Boolean(invalid || pending || cooldown)}>Guardar</Button>
         <Button variant="secondary" size="sm" disabled={pending} onClick={cancel}>Cancelar</Button>
       </div>
-    </Form> : <div className="d-flex justify-content-between align-items-center">
-      <div>
-        <Form.Check type="checkbox" checked={task.completed} disabled={Boolean(pending || cooldown)}
-          aria-label={task.title} onChange={() => void run(() => onToggle(task))}
+    </Form> : <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div className="task-main">
+        <Form.Check type="checkbox" id={`task-${task.id}`} checked={task.completed} disabled={Boolean(pending || cooldown)}
+          onChange={() => void run(() => onToggle(task))}
           label={<span style={{ textDecoration: task.completed ? 'line-through' : 'none' }}>{task.title}</span>} />
+        {task.description && <p className="task-description small text-muted ms-4 mb-0">{task.description}</p>}
         {(task.start_date || task.end_date) && <div className="small text-muted ms-4">
           {task.start_date && <span>Inicio: {formatDate(task.start_date)}</span>}
           {task.start_date && task.end_date && <span> · </span>}
           {task.end_date && <span>Término: {formatDate(task.end_date)}</span>}
+          {due === 'overdue' && <Badge pill bg="danger-subtle" text="danger-emphasis" className="ms-2">Vencida</Badge>}
+          {due === 'today' && <Badge pill bg="warning-subtle" text="warning-emphasis" className="ms-2">Vence hoy</Badge>}
         </div>}
       </div>
       {/* Icon actions (UX-07): the accessible name carries the task title so a

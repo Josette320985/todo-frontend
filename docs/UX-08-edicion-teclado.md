@@ -35,8 +35,20 @@ Editar una tarea solo era cómodo con el ratón:
 - Flujo completo solo con teclado: Enter en el botón → editar → Escape → foco de regreso.
 - Abrir otra fila no le roba el foco al campo nuevo.
 
+## Integración con UX-11 y UX-12
+
+Mientras esta rama estaba abierta se integraron a `equipo3` UX-11 (indicador de
+vencimiento) y UX-12 (campo descripción), que también modifican `TaskItem.tsx`. El
+conflicto se resolvió conservando ambos cambios: el guardado envía la descripción (UX-12)
+y además regresa el foco al botón (UX-08).
+
+Con el campo de descripción, el comportamiento de teclado queda así:
+
+- En el **título** y las **fechas**, Enter guarda.
+- En la **descripción** (área de texto de varias líneas), Enter hace un salto de línea, como
+  se espera en un área de texto. Para guardar desde ahí: Tab hasta "Guardar", o Enter en otro campo.
+- **Escape cancela desde cualquier campo**, incluida la descripción.
+
 ## Pendiente
 
-- Ninguno propio. Si UX-09 (accesibilidad de formularios) o UX-12 (campo descripción),
-  que están en ramas de otro integrante, agregan campos al editor, `autoFocus` sigue en el
-  título y Escape cancela desde cualquier campo.
+- Ninguno propio.

@@ -1,7 +1,7 @@
 // TEST-08: unit tests without rendering for lib/dates, api/token and the
 // getApiError branches not covered in errors.test.ts.
 import { describe, expect, it } from 'vitest';
-import { formatDate, isOverdue, validateDates } from '../lib/dates';
+import { dueStatus, formatDate, isOverdue, validateDates } from '../lib/dates';
 import { clearToken, getToken, setToken } from '../api/token';
 import { getApiError } from '../api/errors';
 
@@ -83,5 +83,21 @@ describe('getApiError remaining branches (ERR-06)', () => {
   it('keeps the status for callers that branch on it', () => {
     expect(getApiError({ status: 404 }).status).toBe(404);
     expect(getApiError({ response: { status: 503, data: {} } }).status).toBe(503);
+  });
+});
+
+describe('dueStatus (UX-11)', () => {
+  const now = new Date(2026, 10, 21, 23, 59);
+  it('marks pending tasks past their end date as overdue', () => {
+    expect(dueStatus('2026-11-20', false, now)).toBe('overdue');
+  });
+  it('marks pending tasks ending today, using the local day', () => {
+    expect(dueStatus('2026-11-21', false, now)).toBe('today');
+    expect(dueStatus('2026-11-21', false, new Date(2026, 10, 21, 0, 1))).toBe('today');
+  });
+  it('shows nothing for future, completed or undated tasks', () => {
+    expect(dueStatus('2026-11-22', false, now)).toBeNull();
+    expect(dueStatus('2026-11-01', true, now)).toBeNull();
+    expect(dueStatus(null, false, now)).toBeNull();
   });
 });
