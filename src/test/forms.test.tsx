@@ -2,13 +2,14 @@ import { expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import LoginForm from '../components/LoginForm';
+import { renderWithAuth } from './renderWithAuth';
 import TaskForm from '../components/TaskForm';
 import * as auth from '../api/auth';
 import { validatePassword } from '../lib/validation';
-vi.mock('../api/auth', () => ({ login: vi.fn(), register: vi.fn() }));
+vi.mock('../api/auth', () => ({ login: vi.fn(), register: vi.fn(), getCurrentUser: vi.fn().mockResolvedValue({ email: 'user@example.com' }) }));
 beforeEach(() => { vi.mocked(auth.login).mockReset(); vi.mocked(auth.register).mockReset(); });
 it('preserves accessible login/register transitions and registration validation', async () => {
-  const user = userEvent.setup(); render(<LoginForm onLogin={vi.fn()} />);
+  const user = userEvent.setup(); renderWithAuth(<LoginForm />);
   expect(screen.getByRole('heading', { name: 'Iniciar Sesión' })).toHaveClass('auth-title');
   expect(screen.queryByRole('button', { name: 'Registrarse y Entrar' })).not.toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: '¿No tienes cuenta? Regístrate' }));
@@ -41,7 +42,7 @@ it('validates password UTF-8 bytes, length, letter and digit', () => {
 it('shows timeout and re-enables login without submitting twice', async () => {
   let reject!: (error: unknown) => void;
   vi.mocked(auth.login).mockReturnValue(new Promise((_, fail) => { reject = fail; }));
-  const user = userEvent.setup(); render(<LoginForm onLogin={vi.fn()} />);
+  const user = userEvent.setup(); renderWithAuth(<LoginForm />);
   await user.type(screen.getByLabelText('Email'), 'andre@example.com');
   await user.type(screen.getByLabelText('Contraseña'), 'Password1');
   await user.click(screen.getByRole('button', { name: 'Entrar' }));
@@ -54,7 +55,7 @@ it('shows timeout and re-enables login without submitting twice', async () => {
 it('renders backend fields and handles Retry-After', async () => {
   vi.mocked(auth.login).mockRejectedValueOnce({ status: 422, errors: [{ field: 'email', message: 'Email no válido' }] })
     .mockRejectedValueOnce({ status: 429, retryAfter: '1' });
-  const user = userEvent.setup(); render(<LoginForm onLogin={vi.fn()} />);
+  const user = userEvent.setup(); renderWithAuth(<LoginForm />);
   await user.type(screen.getByLabelText('Email'), 'andre@example.com');
   await user.type(screen.getByLabelText('Contraseña'), 'Password1');
   await user.click(screen.getByRole('button', { name: 'Entrar' }));
