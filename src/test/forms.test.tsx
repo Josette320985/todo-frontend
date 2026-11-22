@@ -7,6 +7,18 @@ import * as auth from '../api/auth';
 import { validatePassword } from '../lib/validation';
 vi.mock('../api/auth', () => ({ login: vi.fn(), register: vi.fn() }));
 beforeEach(() => { vi.mocked(auth.login).mockReset(); vi.mocked(auth.register).mockReset(); });
+it('preserves accessible login/register transitions and registration validation', async () => {
+  const user = userEvent.setup(); render(<LoginForm onLogin={vi.fn()} />);
+  expect(screen.getByRole('heading', { name: 'Iniciar Sesión' })).toHaveClass('auth-title');
+  expect(screen.queryByRole('button', { name: 'Registrarse y Entrar' })).not.toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: '¿No tienes cuenta? Regístrate' }));
+  expect(screen.getByRole('heading', { name: 'Registro' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Entrar' })).not.toBeInTheDocument();
+  await user.type(screen.getByLabelText('Contraseña'), 'abc');
+  expect(screen.getByRole('button', { name: 'Registrarse y Entrar' })).toBeDisabled();
+  await user.click(screen.getByRole('button', { name: '¿Ya tienes cuenta? Inicia sesión' }));
+  expect(screen.getByRole('button', { name: 'Entrar' })).toBeEnabled();
+});
 it('validates empty titles, max length and dates next to the field', async () => {
   const create = vi.fn(); const user = userEvent.setup();
   render(<TaskForm onCreate={create} onError={vi.fn()} />);

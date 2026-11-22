@@ -27,7 +27,10 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     } finally { setPending(false); }
   };
   return <Card className="mx-auto mt-5" style={{ maxWidth: '400px' }}><Card.Body>
-    <h3 className="text-center mb-4">{isRegister ? 'Registro' : 'Iniciar Sesión'}</h3>
+    <h3 className="text-center mb-4 auth-title">
+      <span className={`auth-title-option${isRegister ? '' : ' is-active'}`} aria-hidden={isRegister}>Iniciar Sesión</span>
+      <span className={`auth-title-option${isRegister ? ' is-active' : ''}`} aria-hidden={!isRegister}>Registro</span>
+    </h3>
     {error && <Alert variant="danger">{error}</Alert>}
     <Form onSubmit={handleSubmit}>
       <Form.Group className="mb-3" controlId="auth-email">
@@ -47,7 +50,10 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
         <Form.Control.Feedback type="invalid" id="password-error">{passwordError || fields.password}</Form.Control.Feedback>
       </Form.Group>
       <Button type="submit" variant="primary" className="w-100 mb-3" disabled={Boolean(pending || remaining || passwordError)}>
-        {pending ? 'Enviando...' : remaining ? `Espera ${remaining} s` : isRegister ? 'Registrarse y Entrar' : 'Entrar'}
+        {pending ? 'Enviando...' : remaining ? `Espera ${remaining} s` : <span className="auth-action">
+          <span className={`auth-action-option${isRegister ? '' : ' is-active'}`} aria-hidden={isRegister}>Entrar</span>
+          <span className={`auth-action-option${isRegister ? ' is-active' : ''}`} aria-hidden={!isRegister}>Registrarse y Entrar</span>
+        </span>}
       </Button>
       <div className="text-center"><Button variant="link" size="sm" disabled={pending} onClick={() => { setIsRegister(!isRegister); setFields({}); setError(''); }}>
         {isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate'}

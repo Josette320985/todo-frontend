@@ -1,0 +1,146 @@
+/*
+ * Design and motion tokens for the To-Do app (UX-15).
+ *
+ * Bootstrap 5.3 already provides the color, spacing and radius scales, so
+ * this file only declares what Bootstrap does not: the shared motion
+ * vocabulary (curve + durations) and a few layout constants used by the
+ * task rows. Components consume them through var(--token) instead of
+ * hard-coding timings, which keeps every animation consistent.
+ */
+:root {
+  /* Motion: a single decelerating curve for entrances and a shorter
+   * accelerating one for exits. Durations follow the UX stories:
+   * 150 ms for frequent feedback, 200 ms for entrances, 300 ms maximum. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+
+  /* Minimum touch target for icon-only actions (UX-07). */
+  --touch-target: 2.5rem;
+
+  /* Keyboard focus ring shared by interactive controls (UX-09). */
+  --focus-ring-width: 0.25rem;
+  --focus-ring-color: rgba(var(--bs-primary-rgb), 0.25);
+}
+
+/*
+ * Dark mode (UX-22).
+ *
+ * Bootstrap 5.3 restyles its own components from [data-bs-theme="dark"];
+ * main.tsx sets that attribute from prefers-color-scheme. The only legacy
+ * utility left in the app shell is .bg-light, which is a fixed color and
+ * would keep the page white in dark mode, so it is mapped to the themed
+ * body background here instead of editing App.tsx (shared with UX-06/14).
+ */
+[data-bs-theme='dark'] .bg-light {
+  background-color: var(--bs-body-bg) !important;
+}
+
+/*
+ * Button press feedback (UX-16).
+ *
+ * Every .btn scales down slightly while pressed. The transform is appended
+ * to Bootstrap's own transition list instead of replacing it, so the
+ * existing color, border and shadow transitions keep working.
+ *
+ * The press uses a shorter duration than the release: 3% is small, so on a
+ * regular click it has to reach its full size before the button is
+ * released. Pressing snaps in 60 ms; releasing eases back over 150 ms.
+ */
+.btn {
+  transition:
+    color var(--duration-fast) ease-in-out,
+    background-color var(--duration-fast) ease-in-out,
+    border-color var(--duration-fast) ease-in-out,
+    box-shadow var(--duration-fast) ease-in-out,
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.btn:active {
+  transform: scale(0.97);
+  transition-duration: 60ms;
+}
+
+/*
+ * Completing a task (UX-18).
+ *
+ * Marking a task is a high-frequency action, so the label only fades its
+ * color and the color of the strike-through; no bounce or scale. React
+ * Bootstrap renders the <input> immediately before its <label>, which lets
+ * the checked state style the text without adding JSX.
+ */
+.form-check-label {
+  transition:
+    color var(--duration-fast) ease,
+    text-decoration-color var(--duration-fast) ease;
+}
+
+.form-check-input:checked + .form-check-label {
+  color: var(--bs-secondary-color);
+}
+
+/*
+ * Reduced motion (UX-21).
+ *
+ * Users who ask the operating system for less motion keep the color fades
+ * (they help show state changes) but lose every movement: the button no
+ * longer scales when pressed. Rules that add transform-based hovers must be
+ * declared inside `@media (hover: hover) and (pointer: fine)` so touch
+ * devices never get a hover state stuck after a tap.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition:
+      color var(--duration-fast) ease-in-out,
+      background-color var(--duration-fast) ease-in-out,
+      border-color var(--duration-fast) ease-in-out,
+      box-shadow var(--duration-fast) ease-in-out;
+  }
+
+  .btn:active {
+    transform: none;
+  }
+}
+
+/*
+ * Login <-> Register crossfade (UX-20).
+ *
+ * The title and the submit label swap without a page transition. Both states
+ * are stacked in the same grid cell and crossfade opacity and blur over
+ * 150 ms; stacking them also keeps the layout from jumping when the longer
+ * label ("Registrarse y Entrar") becomes active.
+ */
+.auth-title,
+.auth-action {
+  display: grid;
+}
+
+.auth-title-option,
+.auth-action-option {
+  grid-area: 1 / 1;
+  opacity: 0;
+  filter: blur(2px);
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    filter var(--duration-fast) var(--ease-out);
+}
+
+.auth-action-option {
+  justify-self: center;
+}
+
+.auth-title-option.is-active,
+.auth-action-option.is-active {
+  opacity: 1;
+  filter: blur(0);
+}
+
+/* Reduced motion keeps the opacity fade but drops the blur (UX-21). */
+@media (prefers-reduced-motion: reduce) {
+  .auth-title-option,
+  .auth-action-option {
+    filter: none;
+  }
+}
