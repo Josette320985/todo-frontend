@@ -50,7 +50,7 @@ export default function LoginForm() {
         <Form.Control.Feedback type="invalid" id="password-error">{passwordError || fields.password}</Form.Control.Feedback>
       </Form.Group>
       <Button type="submit" variant="primary" className="w-100 mb-3" disabled={Boolean(pending || remaining || passwordError)}>
-        {pending ? 'Enviando...' : remaining ? `Espera ${remaining} s` : <span className="auth-action">
+        {pending ? (isRegister ? 'Creando cuenta…' : 'Entrando…') : remaining ? `Espera ${remaining} s` : <span className="auth-action">
           <span className={`auth-action-option${isRegister ? '' : ' is-active'}`} aria-hidden={isRegister}>Entrar</span>
           <span className={`auth-action-option${isRegister ? ' is-active' : ''}`} aria-hidden={!isRegister}>Registrarse y Entrar</span>
         </span>}
