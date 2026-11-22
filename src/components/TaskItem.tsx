@@ -1,6 +1,6 @@
 import { useRef, useState, type Ref } from 'react';
-import { ListGroup, Form, Button } from 'react-bootstrap';
-import { formatDate, validateDates } from '../lib/dates';
+import { ListGroup, Form, Button, Badge } from 'react-bootstrap';
+import { dueStatus, formatDate, validateDates } from '../lib/dates';
 import { animateRowExit } from '../lib/motion';
 import type { Task, TaskUpdate } from '../types/task';
 import TaskFields, { type TaskDraft } from './TaskFields';
@@ -38,6 +38,7 @@ export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, on
     if (!removed) exit?.restore();
     return removed;
   });
+  const due = dueStatus(task.end_date, task.completed);
   const invalid = !value.title.trim() || Boolean(validateDates(value.start, value.end));
   const save = async () => {
     if (invalid) return;
@@ -59,6 +60,8 @@ export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, on
           {task.start_date && <span>Inicio: {formatDate(task.start_date)}</span>}
           {task.start_date && task.end_date && <span> · </span>}
           {task.end_date && <span>Término: {formatDate(task.end_date)}</span>}
+          {due === 'overdue' && <Badge pill bg="danger-subtle" text="danger-emphasis" className="ms-2">Vencida</Badge>}
+          {due === 'today' && <Badge pill bg="warning-subtle" text="warning-emphasis" className="ms-2">Vence hoy</Badge>}
         </div>}
       </div>
       {/* Icon actions (UX-07): the accessible name carries the task title so a
