@@ -1,4 +1,4 @@
-import { useRef, useState, type Ref } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type Ref } from 'react';
 import { ListGroup, Form, Button, Badge } from 'react-bootstrap';
 import { dueStatus, formatDate, validateDates } from '../lib/dates';
 import { animateRowExit } from '../lib/motion';
@@ -23,6 +23,23 @@ export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, on
   const [pending, setPending] = useState(false);
   // react-bootstrap types ListGroup.Item's ref as an anchor; it renders a div.
   const row = useRef<HTMLElement>(null);
+  // UX-08: after saving or cancelling, focus goes back to this row's edit
+  // button so a keyboard user keeps their place in the list. Only when this
+  // row closed its own editor: opening another row must not steal focus.
+  const editButton = useRef<HTMLButtonElement>(null);
+  const returnFocus = useRef(false);
+  useEffect(() => {
+    if (!editing && returnFocus.current) {
+      returnFocus.current = false;
+      editButton.current?.focus();
+    }
+  }, [editing]);
+  const close = () => { returnFocus.current = true; onEdit(null); };
+  const cancel = () => { onError(''); close(); };
+  // Enter already submits the form (save); Escape cancels.
+  const onEditorKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
+    if (event.key === 'Escape' && !pending) { event.preventDefault(); cancel(); }
+  };
   const startEditing = () => {
     setValue({ title: task.title, description: task.description || '', start: task.start_date || '', end: task.end_date || '' }); onError(''); onEdit(task.id);
   };
@@ -42,14 +59,14 @@ export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, on
   const invalid = !value.title.trim() || Boolean(validateDates(value.start, value.end));
   const save = async () => {
     if (invalid) return;
-    if (await run(() => onUpdate(task.id, { title: value.title.trim(), description: value.description.trim() || null, start_date: value.start || null, end_date: value.end || null }))) onEdit(null);
+    if (await run(() => onUpdate(task.id, { title: value.title.trim(), description: value.description.trim() || null, start_date: value.start || null, end_date: value.end || null }))) close();
   };
   return <ListGroup.Item ref={row as Ref<HTMLAnchorElement>} className="task-row">
-    {editing ? <Form onSubmit={event => { event.preventDefault(); void save(); }}>
+    {editing ? <Form onSubmit={event => { event.preventDefault(); void save(); }} onKeyDown={onEditorKeyDown}>
       <TaskFields value={value} onChange={setValue} errors={fieldErrors} disabled={pending} editing />
       <div className="d-flex gap-2 mt-2">
         <Button type="submit" variant="success" size="sm" disabled={Boolean(invalid || pending || cooldown)}>Guardar</Button>
-        <Button variant="secondary" size="sm" disabled={pending} onClick={() => { onError(''); onEdit(null); }}>Cancelar</Button>
+        <Button variant="secondary" size="sm" disabled={pending} onClick={cancel}>Cancelar</Button>
       </div>
     </Form> : <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
       <div className="task-main">
@@ -68,7 +85,7 @@ export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, on
       {/* Icon actions (UX-07): the accessible name carries the task title so a
           screen reader can tell the rows apart; title gives the mouse tooltip. */}
       <div className="task-actions d-flex gap-1">
-        <Button variant="outline-warning" size="sm" className="icon-button" disabled={Boolean(pending || cooldown)}
+        <Button ref={editButton} variant="outline-warning" size="sm" className="icon-button" disabled={Boolean(pending || cooldown)}
           aria-label={`Modificar: ${task.title}`} title="Modificar" onClick={startEditing}><PencilIcon /></Button>
         <Button variant="outline-danger" size="sm" className="icon-button" disabled={Boolean(pending || cooldown)}
           aria-label={`Eliminar: ${task.title}`} title="Eliminar" onClick={() => void remove()}><TrashIcon /></Button>
