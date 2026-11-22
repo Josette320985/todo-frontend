@@ -1,5 +1,9 @@
 # ERR-06 y UX-05: validación de integración
 
+Actualización posterior: la diferencia de validación del correo se resolvió
+con una comprobación compartida con el backend. Véase [validación de correo](validacion-correo.md).
+Las observaciones de correo del informe siguiente describen el estado previo.
+
 Revisión del 22 de noviembre de 2026 sobre frontend `519bd6c` y backend
 `946dc3e`, ambos de `equipo3`.
 
