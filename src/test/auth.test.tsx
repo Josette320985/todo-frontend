@@ -51,3 +51,25 @@ it('logs out from the navbar even if the server call fails', async () => {
   await waitFor(() => expect(screen.getByRole('heading', { name: 'Iniciar Sesión' })).toBeInTheDocument());
   expect(auth.logout).toHaveBeenCalledTimes(1);
 });
+
+// UX-06: an invalid stored token explains why the user is back at the login.
+it('tells the user the session expired when the stored token is rejected', async () => {
+  localStorage.setItem('token', 'expired');
+  vi.mocked(auth.getCurrentUser).mockImplementationOnce(async () => {
+    localStorage.removeItem('token');
+    window.dispatchEvent(new Event(AUTH_UNAUTHORIZED_EVENT));
+    throw new Error('401');
+  });
+  render(<AuthProvider><App /></AuthProvider>);
+  expect(await screen.findByRole('alert')).toHaveTextContent('Tu sesión expiró. Vuelve a iniciar sesión.');
+  expect(screen.getByRole('heading', { name: 'Iniciar Sesión' })).toBeInTheDocument();
+});
+
+it('does not show the expired notice after a normal logout', async () => {
+  localStorage.setItem('token', 'abc');
+  const user = userEvent.setup();
+  render(<AuthProvider><App /></AuthProvider>);
+  await user.click(screen.getByRole('button', { name: 'Cerrar Sesión' }));
+  await screen.findByRole('heading', { name: 'Iniciar Sesión' });
+  expect(screen.queryByText(/Tu sesión expiró/)).not.toBeInTheDocument();
+});
