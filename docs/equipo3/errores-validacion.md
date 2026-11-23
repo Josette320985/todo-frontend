@@ -1,5 +1,9 @@
 # ERR-06 y UX-05: validación de integración
 
+Estado posterior: los pendientes de ERR-06 se resolvieron al integrarse ERR-03
+y corregirse la respuesta de desconexión del proxy. Véase [cierre de ERR-06](cierre-err06.md).
+Los pendientes y estados siguientes se conservan como registro histórico.
+
 Actualización posterior: la diferencia de validación del correo se resolvió
 con una comprobación compartida con el backend. Véase [validación de correo](validacion-correo.md).
 Las observaciones de correo del informe siguiente describen el estado previo.

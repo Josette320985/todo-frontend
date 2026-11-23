@@ -54,16 +54,14 @@ it('maps actual registration validation errors without leaking request data', as
   expect(JSON.stringify(result)).not.toContain('short');
 });
 
-it('handles the real 429 and reports whether ERR-03 is available', async () => {
+it('requires the real ERR-03 retry delay on a 429', async () => {
   let limited;
   for (let attempt = 0; attempt < 12; attempt++) {
-    const result = await auth.login(`missing-${Date.now()}@example.com`, 'WrongPassword1').catch(error => getApiError(error));
+    const result = await auth.login('missing-err06@example.com', 'WrongPassword1').catch(error => getApiError(error));
     if (result?.status === 429) { limited = result; break; }
   }
-  expect(limited?.message).toContain('Demasiados intentos');
-  if (limited?.retryAfter === undefined) {
-    console.info('DEPENDENCIA PENDIENTE: ERR-03; el backend no devuelve Retry-After en 429.');
-  } else {
-    expect(limited.retryAfter).toBeGreaterThanOrEqual(0);
-  }
+  expect(limited?.status).toBe(429);
+  expect(limited?.retryAfter).toBeGreaterThan(0);
+  expect(limited?.retryAfter).toBeLessThanOrEqual(60);
+  expect(limited?.message).toBe(`Demasiados intentos. Intenta en ${limited?.retryAfter} s`);
 });
