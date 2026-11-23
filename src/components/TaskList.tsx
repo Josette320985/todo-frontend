@@ -1,345 +1,158 @@
-import { type FormEvent, type JSX, useEffect, useState } from 'react';
-import {
-  ListGroup,
-  Button,
-  Form,
-  InputGroup,
-  Card,
-  Row,
-  Col,
-  Alert,
-} from 'react-bootstrap';
-import api from '../api/client';
-import type { Task, TaskCreate, TaskUpdate } from '../types/task';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Card, Alert, Button, ListGroup, Toast, ToastContainer } from 'react-bootstrap';
+import { useTasks } from '../hooks/useTasks';
+import type { Task, TaskSortParams } from '../types/task';
+import { DEFAULT_TASK_FILTER, EMPTY_FILTER_MESSAGE, filterTasks, type TaskFilter as Filter } from '../lib/taskFilter';
+import TaskFilter from './TaskFilter';
+import TaskForm from './TaskForm';
+import TaskItem from './TaskItem';
+import TaskSummary from './TaskSummary';
+import { MAX_TASKS_PER_USER } from '../lib/limits';
 
-// Convierte "2026-11-12" en "12/11/2026" sin usar Date
-// (evita el desfase de un día por zona horaria).
-function formatDate(value: string | null | undefined): string {
-  if (!value) return '';
-  const [year, month, day] = value.split('-');
-  return `${day}/${month}/${year}`;
+const UNDO_DELAY_MS = 5000;
+
+// TEMPORARY test variable: sorting passed to useTasks until the sort control
+// exists. Pending first, completed last: the backend applies these fields in
+// sequence (completed, end_date with undated last, id), the same order as its
+// OPT-02 fallback. The frontend does not re-sort the result.
+const TEST_SORT: TaskSortParams = { sortBy: ['completed', 'end_date', 'id'], order: 'asc' };
+
+/** Three grey rows shaped like tasks while the list loads (UX-01). */
+function TaskListSkeleton() {
+  return (
+    <div role="status" aria-label="Cargando tareas">
+      <ListGroup aria-hidden="true" className="placeholder-glow">
+        {['col-7', 'col-5', 'col-6'].map(width => (
+          <ListGroup.Item key={width} className="d-flex align-items-center gap-2 py-3">
+            <span className="placeholder rounded" style={{ width: '1rem', height: '1rem' }} />
+            <span className={`placeholder rounded ${width}`} />
+          </ListGroup.Item>
+        ))}
+      </ListGroup>
+    </div>
+  );
 }
 
-// Devuelve un mensaje de error si las fechas son inválidas, o '' si están bien.
-function validateDates(start: string, end: string): string {
-  if (start && end && end < start) {
-    return 'La fecha de término no puede ser anterior a la fecha de inicio.';
-  }
-  return '';
-}
-
-/**
- * Renders and manages the authenticated user's task list.
- */
-export default function TaskList(): JSX.Element {
-  // Stores the tasks retrieved from the backend.
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [error, setError] = useState<string>('');
-
-  // Formulario de nueva tarea
-  const [title, setTitle] = useState<string>('');
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
-
-  // Identifies the task currently being edited; null means no active edit.
+export default function TaskList() {
+  const { tasks, status, retry, error, fieldErrors, errorId, remaining, setError, create, update, remove, toggle } = useTasks(TEST_SORT);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [pendingDeletes, setPendingDeletes] = useState<Task[]>([]);
+  // View filter: local state only, the backend is never involved.
+  const [filter, setFilter] = useState<Filter>(DEFAULT_TASK_FILTER);
+  const hiddenIds = useMemo(() => new Set(pendingDeletes.map(task => task.id)), [pendingDeletes]);
+  const visibleTasks = tasks.filter(task => !hiddenIds.has(task.id));
+  const shownTasks = filterTasks(visibleTasks, filter);
 
-  // Stores the temporary title entered while editing an existing task.
-  const [editTitle, setEditTitle] = useState<string>('');
-  const [editStartDate, setEditStartDate] = useState<string>('');
-  const [editEndDate, setEditEndDate] = useState<string>('');
+  const requestDelete = useCallback(async (id: number): Promise<boolean> => {
+    const task = tasks.find(item => item.id === id);
+    if (!task || hiddenIds.has(id)) return false;
+    setPendingDeletes(current => [...current, task]);
+    return true;
+  }, [hiddenIds, tasks]);
 
-  /**
-   * Retrieves the current task list from the backend API.
-   */
-  const loadTasks = async (): Promise<void> => {
-    try {
-      const { data } = await api.get<Task[]>('/v1/tasks/');
-      setTasks(data);
-    } catch (err: unknown) {
-      console.error('Error cargando tareas', err);
-    }
-  };
+  const undoDelete = useCallback((id: number) => {
+    setPendingDeletes(current => current.filter(task => task.id !== id));
+  }, []);
 
-  // Loads the task list once when the component is mounted.
+  const commitDelete = useCallback((id: number) => {
+    setPendingDeletes(current => current.filter(task => task.id !== id));
+    void remove(id);
+  }, [remove]);
+
+  // Manual undo timers with pause/resume on tab visibility (UX-19).
+  // React Bootstrap's autohide cannot be paused, so we drive the delay
+  // ourselves and keep the remaining time when the tab is hidden.
+  const undoTimersRef = useRef<Map<number, { timeoutId: number; remaining: number; startedAt: number }>>(new Map());
+
   useEffect(() => {
-    let active = true;
-    api
-      .get<Task[]>('/v1/tasks/')
-      .then(({ data }) => {
-        if (active) {
-          setTasks(data);
+    const timers = undoTimersRef.current;
+    // Start a timer for each newly pending delete.
+    for (const task of pendingDeletes) {
+      if (!timers.has(task.id)) {
+        const entry = { timeoutId: 0, remaining: UNDO_DELAY_MS, startedAt: Date.now() };
+        entry.timeoutId = window.setTimeout(() => {
+          commitDelete(task.id);
+        }, UNDO_DELAY_MS);
+        timers.set(task.id, entry);
+      }
+    }
+    // Clear timers for deletes that are no longer pending (undo).
+    for (const id of Array.from(timers.keys())) {
+      if (!pendingDeletes.some(task => task.id === id)) {
+        const entry = timers.get(id);
+        if (entry) clearTimeout(entry.timeoutId);
+        timers.delete(id);
+      }
+    }
+  }, [pendingDeletes, commitDelete]);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      const timers = undoTimersRef.current;
+      if (document.hidden) {
+        for (const entry of timers.values()) {
+          clearTimeout(entry.timeoutId);
+          entry.remaining = Math.max(0, entry.remaining - (Date.now() - entry.startedAt));
         }
-      })
-      .catch((err: unknown) => {
-        console.error('Error cargando tareas', err);
-      });
-    return (): void => {
-      active = false;
+      } else {
+        for (const [id, entry] of timers.entries()) {
+          entry.startedAt = Date.now();
+          entry.timeoutId = window.setTimeout(() => {
+            commitDelete(id);
+          }, entry.remaining);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [commitDelete]);
+
+  useEffect(() => {
+    const timers = undoTimersRef.current;
+    return () => {
+      for (const entry of timers.values()) clearTimeout(entry.timeoutId);
+      timers.clear();
     };
   }, []);
 
-  /**
-   * Creates a new task using the title entered by the user.
-   */
-  const addTask = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
-    e.preventDefault();
-    if (!title.trim()) return;
-
-    const dateError: string = validateDates(startDate, endDate);
-    if (dateError) {
-      setError(dateError);
-      return;
-    }
-
-    try {
-      const payload: TaskCreate = {
-        title,
-        start_date: startDate || null,
-        end_date: endDate || null,
-      };
-      await api.post<Task>('/v1/tasks/', payload);
-      setTitle('');
-      setStartDate('');
-      setEndDate('');
-      setError('');
-      await loadTasks();
-    } catch (err: unknown) {
-      console.error('Error creando tarea', err);
-      setError('No se pudo crear la tarea. Revisa los datos.');
-    }
-  };
-
-  /**
-   * Toggles the completion status of an existing task.
-   */
-  const toggleTask = async (task: Task): Promise<void> => {
-    try {
-      const payload: TaskUpdate = { completed: !task.completed };
-      await api.put<Task>(`/v1/tasks/${task.id}`, payload);
-      await loadTasks();
-    } catch (err: unknown) {
-      console.error('Error actualizando estado de tarea', err);
-      setError('No se pudo actualizar el estado de la tarea.');
-    }
-  };
-
-  /**
-   * Deletes a task using its unique identifier.
-   */
-  const deleteTask = async (id: number): Promise<void> => {
-    try {
-      await api.delete(`/v1/tasks/${id}`);
-      await loadTasks();
-    } catch (err: unknown) {
-      console.error('Error eliminando tarea', err);
-      setError('No se pudo eliminar la tarea.');
-    }
-  };
-
-  const startEditing = (task: Task): void => {
-    setEditingId(task.id);
-    setEditTitle(task.title);
-    setEditStartDate(task.start_date || '');
-    setEditEndDate(task.end_date || '');
-    setError('');
-  };
-
-  const cancelEditing = (): void => {
-    setEditingId(null);
-    setError('');
-  };
-
-  /**
-   * Updates the title and dates of an existing task.
-   */
-  const updateTask = async (id: number): Promise<void> => {
-    if (!editTitle.trim()) return;
-
-    const dateError: string = validateDates(editStartDate, editEndDate);
-    if (dateError) {
-      setError(dateError);
-      return;
-    }
-
-    try {
-      const payload: TaskUpdate = {
-        title: editTitle,
-        start_date: editStartDate || null,
-        end_date: editEndDate || null,
-      };
-      await api.put<Task>(`/v1/tasks/${id}`, payload);
-      setEditingId(null);
-      setEditTitle('');
-      setEditStartDate('');
-      setEditEndDate('');
-      setError('');
-      await loadTasks();
-    } catch (err: unknown) {
-      console.error('Error actualizando tarea', err);
-      setError('No se pudo actualizar la tarea. Revisa los datos.');
-    }
-  };
-
-  return (
+  return <>
     <Card className="mx-auto mt-5 shadow-sm" style={{ maxWidth: '600px' }}>
       <Card.Body>
         <h3 className="mb-4">Mis Tareas</h3>
-
-        {error && (
-          <Alert variant="danger" dismissible onClose={() => setError('')}>
-            {error}
+        {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
+        <TaskForm onCreate={create} onError={setError} fieldErrors={errorId === undefined ? fieldErrors : {}} cooldown={remaining}
+          atLimit={status === 'ready' && tasks.length >= MAX_TASKS_PER_USER} />
+        {status === 'loading' && <TaskListSkeleton />}
+        {status === 'error' && (
+          <Alert variant="danger" className="d-flex justify-content-between align-items-center gap-3 mb-0">
+            <span>No pudimos cargar tus tareas</span>
+            <Button variant="outline-danger" size="sm" onClick={() => void retry()}>Reintentar</Button>
           </Alert>
         )}
-
-        <Form onSubmit={addTask} className="mb-4">
-          <InputGroup className="mb-2">
-            <Form.Control
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Nueva tarea..."
-            />
-            <Button type="submit" variant="success">
-              Agregar
-            </Button>
-          </InputGroup>
-          <Row className="g-2">
-            <Col xs={12} sm={6}>
-              <Form.Label className="small text-muted mb-0">
-                Fecha de inicio
-              </Form.Label>
-              <Form.Control
-                type="date"
-                size="sm"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </Col>
-            <Col xs={12} sm={6}>
-              <Form.Label className="small text-muted mb-0">
-                Fecha de término
-              </Form.Label>
-              <Form.Control
-                type="date"
-                size="sm"
-                value={endDate}
-                min={startDate || undefined}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </Col>
-          </Row>
-        </Form>
-
-        <ListGroup>
-          {tasks.length === 0 && (
-            <p className="text-muted text-center">No hay tareas pendientes.</p>
-          )}
-
-          {tasks.map((task: Task) => (
-            <ListGroup.Item key={task.id}>
-              {editingId === task.id ? (
-                <div className="w-100">
-                  <Form.Control
-                    size="sm"
-                    className="mb-2"
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                  />
-                  <Row className="g-2 mb-2">
-                    <Col xs={12} sm={6}>
-                      <Form.Label className="small text-muted mb-0">
-                        Fecha de inicio
-                      </Form.Label>
-                      <Form.Control
-                        type="date"
-                        size="sm"
-                        value={editStartDate}
-                        onChange={(e) => setEditStartDate(e.target.value)}
-                      />
-                    </Col>
-                    <Col xs={12} sm={6}>
-                      <Form.Label className="small text-muted mb-0">
-                        Fecha de término
-                      </Form.Label>
-                      <Form.Control
-                        type="date"
-                        size="sm"
-                        value={editEndDate}
-                        min={editStartDate || undefined}
-                        onChange={(e) => setEditEndDate(e.target.value)}
-                      />
-                    </Col>
-                  </Row>
-                  <div className="d-flex gap-2">
-                    <Button
-                      variant="success"
-                      size="sm"
-                      onClick={() => updateTask(task.id)}
-                    >
-                      Guardar
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={cancelEditing}
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <Form.Check
-                      type="checkbox"
-                      checked={task.completed}
-                      onChange={() => toggleTask(task)}
-                      label={
-                        <span
-                          style={{
-                            textDecoration: task.completed
-                              ? 'line-through'
-                              : 'none',
-                          }}
-                        >
-                          {task.title}
-                        </span>
-                      }
-                    />
-                    {(task.start_date || task.end_date) && (
-                      <div className="small text-muted ms-4">
-                        {task.start_date && (
-                          <span>Inicio: {formatDate(task.start_date)}</span>
-                        )}
-                        {task.start_date && task.end_date && <span> · </span>}
-                        {task.end_date && (
-                          <span>Término: {formatDate(task.end_date)}</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="d-flex gap-2">
-                    <Button
-                      variant="outline-warning"
-                      size="sm"
-                      onClick={() => startEditing(task)}
-                    >
-                      Modificar
-                    </Button>
-                    <Button
-                      variant="outline-danger"
-                      size="sm"
-                      onClick={() => deleteTask(task.id)}
-                    >
-                      Eliminar
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </ListGroup.Item>
-          ))}
-        </ListGroup>
+        {status === 'ready' && tasks.length > 0 && <TaskSummary tasks={tasks} />}
+        {status === 'ready' && tasks.length > 0 && <TaskFilter value={filter} onChange={setFilter} />}
+        {status === 'ready' && (tasks.length === 0
+          ? <p className="text-muted text-center py-3 mb-0">Aún no tienes tareas. Escribe la primera arriba.</p>
+          : shownTasks.length > 0
+            ? <ListGroup>
+              {shownTasks.map(task => <TaskItem key={task.id} task={task} editing={editingId === task.id}
+                onEdit={setEditingId} onToggle={toggle} onDelete={requestDelete} onUpdate={update} onError={setError}
+                fieldErrors={errorId === task.id ? fieldErrors : {}} cooldown={remaining} />)}
+            </ListGroup>
+            : visibleTasks.length > 0 && filter !== 'all' && (
+              <p className="text-muted text-center py-3 mb-0">{EMPTY_FILTER_MESSAGE[filter]}</p>
+            ))}
       </Card.Body>
     </Card>
-  );
+    <ToastContainer position="bottom-center" className="p-3">
+      {pendingDeletes.map(task => (
+        <Toast key={task.id} onClose={() => commitDelete(task.id)} aria-label="Tarea eliminada">
+          <Toast.Body className="d-flex align-items-center gap-2">
+            <span>Tarea eliminada ·</span>
+            <Button variant="link" size="sm" className="p-0" aria-label={`Deshacer eliminación de ${task.title}`} onClick={() => undoDelete(task.id)}>Deshacer</Button>
+          </Toast.Body>
+        </Toast>
+      ))}
+    </ToastContainer>
+  </>;
 }

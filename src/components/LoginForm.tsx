@@ -1,129 +1,71 @@
-import { type FormEvent, type JSX, useState } from 'react';
-import { type AxiosError } from 'axios';
+import { useState, type FormEvent } from 'react';
 import { Form, Button, Alert, Card } from 'react-bootstrap';
-import api from '../api/client';
-import type {
-  ApiErrorResponse,
-  TokenResponse,
-  UserCreate,
-  UserRead,
-  ValidationErrorItem,
-} from '../types/auth';
+import { getApiError, getFormErrorMessage } from '../api/errors';
+import { validateEmail, validatePassword } from '../lib/validation';
+import { validateRegistrationEmail } from '../api/auth';
+import { useCooldown } from '../hooks/useCooldown';
+import { useAuth } from '../hooks/useAuth';
 
-export interface LoginFormProps {
-  onLogin: () => void;
-}
-
-/**
- * Extracts a safe, human-readable error string from a FastAPI error response.
- *
- * Handles both standard string details (400/401/429) and Pydantic validation
- * error arrays (422) so React never attempts to render raw objects.
- */
-function formatApiErrorDetail(
-  detail: string | ValidationErrorItem[] | undefined,
-): string {
-  if (typeof detail === 'string' && detail.trim()) {
-    return detail;
-  }
-  if (Array.isArray(detail) && detail.length > 0) {
-    return detail
-      .map((item: ValidationErrorItem) =>
-        item.msg.replace(/^Value error,\s*/i, ''),
-      )
-      .join('. ');
-  }
-  return 'Error al conectar con el servidor';
-}
-
-/**
- * Renders the authentication form for user login and registration.
- *
- * Supports two modes:
- * - Login: authenticates an existing user.
- * - Registration: creates a new account and automatically logs in.
- *
- * After successful authentication, stores the access token in
- * localStorage and notifies the parent component through onLogin().
- */
-export default function LoginForm({ onLogin }: LoginFormProps): JSX.Element {
-  // Determines whether the form is in login or registration mode.
-  const [isRegister, setIsRegister] = useState<boolean>(false);
-
-  // Controlled form inputs. Email is submitted as "username" during login.
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-
-  // Stores authentication errors displayed to the user.
-  const [error, setError] = useState<string>('');
-
-  /**
-   * Handles login and registration form submissions.
-   */
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
-    e.preventDefault();
-    setError('');
+export default function LoginForm() {
+  const { login, register } = useAuth();
+  const [isRegister, setIsRegister] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [fields, setFields] = useState<Record<string, string>>({});
+  const [pending, setPending] = useState(false);
+  const { remaining, start } = useCooldown();
+  const passwordError = isRegister && password ? validatePassword(password) : '';
+  const emailError = isRegister ? validateEmail(email) || fields.email || fields.username || '' : '';
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (pending || remaining || (isRegister && (emailError || validatePassword(password)))) return;
+    setPending(true); setError(''); setFields({});
     try {
+      let submittedEmail = email.trim();
       if (isRegister) {
-        const registerPayload: UserCreate = { email, password };
-        await api.post<UserRead>('/v1/auth/register', registerPayload);
+        const result = await validateRegistrationEmail(submittedEmail);
+        if (!result.valid) { setFields({ email: result.message }); return; }
+        submittedEmail = result.normalized;
+        await register({ email: submittedEmail, password }); setIsRegister(false);
       }
-
-      const params = new URLSearchParams();
-      params.append('username', email);
-      params.append('password', password);
-
-      const { data } = await api.post<TokenResponse>('/v1/auth/login', params);
-      localStorage.setItem('token', data.access_token);
-      onLogin();
-    } catch (err: unknown) {
-      const axiosErr = err as AxiosError<ApiErrorResponse>;
-      setError(formatApiErrorDetail(axiosErr.response?.data?.detail));
-    }
+      await login(submittedEmail, password);
+    } catch (err) {
+      const info = getApiError(err); setError(getFormErrorMessage(info, ['email', 'username', 'password'])); setFields(info.fieldErrors); start(info.retryAfter);
+    } finally { setPending(false); }
   };
-
-  return (
-    <Card className="mx-auto mt-5" style={{ maxWidth: '400px' }}>
-      <Card.Body>
-        <h3 className="text-center mb-4">
-          {isRegister ? 'Registro' : 'Iniciar Sesión'}
-        </h3>
-        {error && <Alert variant="danger">{error}</Alert>}
-        <Form onSubmit={handleSubmit}>
-          <Form.Group className="mb-3">
-            <Form.Label>Email</Form.Label>
-            <Form.Control
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </Form.Group>
-          <Form.Group className="mb-3">
-            <Form.Label>Contraseña</Form.Label>
-            <Form.Control
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </Form.Group>
-          <Button type="submit" variant="primary" className="w-100 mb-3">
-            {isRegister ? 'Registrarse y Entrar' : 'Entrar'}
-          </Button>
-          <div className="text-center">
-            <Button
-              variant="link"
-              size="sm"
-              onClick={() => setIsRegister(!isRegister)}
-            >
-              {isRegister
-                ? '¿Ya tienes cuenta? Inicia sesión'
-                : '¿No tienes cuenta? Regístrate'}
-            </Button>
-          </div>
-        </Form>
-      </Card.Body>
-    </Card>
-  );
+  return <Card className="mx-auto mt-5" style={{ maxWidth: '400px' }}><Card.Body>
+    <h3 className="text-center mb-4 auth-title">
+      <span className={`auth-title-option${isRegister ? '' : ' is-active'}`} aria-hidden={isRegister}>Iniciar Sesión</span>
+      <span className={`auth-title-option${isRegister ? ' is-active' : ''}`} aria-hidden={!isRegister}>Registro</span>
+    </h3>
+    {error && <Alert variant="danger">{error}</Alert>}
+    <Form onSubmit={handleSubmit}>
+      <Form.Group className="mb-3" controlId="auth-email">
+        <Form.Label>Email</Form.Label>
+        <Form.Control type="text" inputMode="email" autoCapitalize="none" spellCheck={false} value={email} required autoComplete="email" maxLength={2048} disabled={pending}
+          isInvalid={Boolean((email && emailError) || fields.email || fields.username)} aria-describedby="email-error"
+          onChange={event => { setEmail(event.target.value); setFields({}); }} />
+        <Form.Control.Feedback type="invalid" id="email-error" aria-live="polite">{(email && emailError) || fields.email || fields.username}</Form.Control.Feedback>
+      </Form.Group>
+      <Form.Group className="mb-3" controlId="auth-password">
+        <Form.Label>Contraseña</Form.Label>
+        <Form.Control type="password" value={password} required disabled={pending}
+          isInvalid={Boolean(passwordError || fields.password)} aria-describedby="password-help password-error"
+          autoComplete={isRegister ? 'new-password' : 'current-password'}
+          onChange={event => { setPassword(event.target.value); setFields({}); }} />
+        {isRegister && <Form.Text id="password-help">Mínimo 8 caracteres, con al menos una letra y un número. Máximo 72 bytes UTF-8.</Form.Text>}
+        <Form.Control.Feedback type="invalid" id="password-error" aria-live="polite">{passwordError || fields.password}</Form.Control.Feedback>
+      </Form.Group>
+      <Button type="submit" variant="primary" className="w-100 mb-3" disabled={Boolean(pending || remaining || passwordError || emailError)}>
+        {pending ? (isRegister ? 'Creando cuenta…' : 'Entrando…') : remaining ? `Espera ${remaining} s` : <span className="auth-action">
+          <span className={`auth-action-option${isRegister ? '' : ' is-active'}`} aria-hidden={isRegister}>Entrar</span>
+          <span className={`auth-action-option${isRegister ? ' is-active' : ''}`} aria-hidden={!isRegister}>Registrarse y Entrar</span>
+        </span>}
+      </Button>
+      <div className="text-center"><Button variant="link" size="sm" disabled={pending} onClick={() => { setIsRegister(!isRegister); setFields({}); setError(''); }}>
+        {isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate'}
+      </Button></div>
+    </Form>
+  </Card.Body></Card>;
 }

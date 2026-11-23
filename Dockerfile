@@ -22,8 +22,9 @@ FROM nginx:1.27-alpine
 # Copy the compiled frontend files from the build stage.
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Apply the custom Nginx server configuration.
+# Apply the custom Nginx server configuration and the shared security headers.
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY security-headers.conf /etc/nginx/snippets/security-headers.conf
 
 # Document the HTTP port used by the container.
 EXPOSE 80

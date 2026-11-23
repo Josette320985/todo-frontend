@@ -1,0 +1,16 @@
+# Keep build artefacts, dependencies and secrets out of the Docker context.
+# node_modules is excluded because the image runs its own npm ci: copying a host
+# node_modules on top of it breaks the build (COPY . . cannot overwrite files).
+
+# Host dependencies and build output (rebuilt inside the image).
+node_modules
+dist
+
+# Local environment files (the example is safe and stays for reference).
+.env
+.env.*
+!.env.example
+
+# Git metadata and logs.
+.git
+*.log
