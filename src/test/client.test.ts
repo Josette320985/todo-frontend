@@ -1,11 +1,21 @@
 import { expect, it, vi, afterEach } from 'vitest';
 import api, { AUTH_UNAUTHORIZED_EVENT, ApiFailure } from '../api/client';
 import { setToken, getToken } from '../api/token';
+import { getApiError } from '../api/errors';
 const mockFetch = vi.fn();
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 function respond(body: unknown, status = 200, headers = {}) {
   vi.stubGlobal('fetch', mockFetch.mockResolvedValue(new Response(status === 204 ? null : JSON.stringify(body), { status, headers })));
 }
+it('distinguishes a proxy outage from backend failures across the transport', async () => {
+  respond({ code: 'upstream_unavailable' }, 503);
+  const unavailable = await api.post('/v1/tasks/', {}).catch(getApiError);
+  expect(unavailable).toMatchObject({ status: 503, message: 'No hay conexión con el servidor. Revisa tu internet.' });
+  respond({ code: 'service_unavailable' }, 503);
+  expect(await api.post('/v1/tasks/', {}).catch(getApiError)).toMatchObject({ message: 'Algo falló en el servidor. Intenta de nuevo en un momento.' });
+  respond({ code: 'internal_error' }, 500);
+  expect(await api.post('/v1/tasks/', {}).catch(getApiError)).toMatchObject({ message: 'Algo falló en el servidor. Intenta de nuevo en un momento.' });
+});
 it('sends JSON and Authorization without storing request secrets on failures', async () => {
   setToken('SECRET'); respond({ detail: 'No' }, 500);
   const error = await api.post('/v1/tasks/', { title: 'Tarea' }).catch(e => e);

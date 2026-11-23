@@ -55,7 +55,7 @@ export function getApiError(error: unknown): ApiErrorInfo {
   if (err.kind === 'invalid_response') message = 'El servidor devolvió una respuesta inválida. Intenta de nuevo.';
   else if (err.kind === 'timeout' || err.code === 'ECONNABORTED' || err.name === 'TimeoutError') message = 'El servidor tardó demasiado. Intenta de nuevo.';
   else if (err.kind === 'cancelled') message = 'Solicitud cancelada.';
-  else if (!status) message = 'No hay conexión con el servidor. Revisa tu internet.';
+  else if (!status || (status === 503 && data.code === 'upstream_unavailable')) message = 'No hay conexión con el servidor. Revisa tu internet.';
   else if (status === 404) message = 'Esta tarea ya no existe';
   // SEG-H12: the backend refused a new task because the user hit the cap.
   else if (status === 409 && data.code === 'task_limit_reached') message = TASK_LIMIT_MESSAGE;

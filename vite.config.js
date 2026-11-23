@@ -1,5 +1,6 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import { apiProxy } from './api-proxy.js'
 
 // https://vite.dev/config/
 const deferStylesheet = html => html.replace(/<link rel="stylesheet"([^>]+)>/g, (tag, attrs) => {
@@ -10,6 +11,7 @@ const deferStylesheet = html => html.replace(/<link rel="stylesheet"([^>]+)>/g, 
 })
 
 export default defineConfig({
+  server: { proxy: { '/api': apiProxy() } },
   plugins: [
     react(),
     {

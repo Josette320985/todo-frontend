@@ -11,6 +11,7 @@ export class ApiFailure extends Error {
     public readonly detail?: unknown,
     public readonly errors?: unknown,
     public readonly retryAfter?: string | null,
+    public readonly code?: string,
   ) { super(kind); this.name = 'ApiFailure'; }
 }
 
@@ -39,7 +40,8 @@ async function request<T>(method: string, path: string, body?: unknown, options:
     catch { if (response.ok) throw new ApiFailure('invalid_response', response.status); }
     if (!response.ok) {
       const parsed = record(data);
-      throw new ApiFailure('http', response.status, parsed.detail, parsed.errors, response.headers.get('Retry-After'));
+      throw new ApiFailure('http', response.status, parsed.detail, parsed.errors, response.headers.get('Retry-After'),
+        typeof parsed.code === 'string' ? parsed.code : undefined);
     }
     return { data: data as T };
   } catch (error) {
