@@ -7,6 +7,7 @@ import TaskForm from '../components/TaskForm';
 import * as auth from '../api/auth';
 import { validatePassword } from '../lib/validation';
 import { validateDate } from '../lib/dates';
+import { findAppAlert, queryAppAlert } from './alerts';
 vi.mock('../api/auth', () => ({ login: vi.fn(), register: vi.fn(), validateRegistrationEmail: vi.fn(async (email: string) => ({ valid: true, normalized: email })), getCurrentUser: vi.fn().mockResolvedValue({ email: 'user@example.com' }) }));
 beforeEach(() => { vi.mocked(auth.login).mockReset(); vi.mocked(auth.register).mockReset(); });
 it('rejects a backend-invalid email inline before registering and accepts a corrected IDN', async () => {
@@ -18,8 +19,8 @@ it('rejects a backend-invalid email inline before registering and accepts a corr
   await user.type(screen.getByLabelText('Email'), 'a..b@example.com');
   await user.type(screen.getByLabelText('Contraseña'), 'Password1');
   await user.click(screen.getByRole('button', { name: 'Registrarse y Entrar' }));
-  expect(await screen.findByText('El email no es válido')).toHaveClass('invalid-feedback');
-  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(await screen.findByText('El email no es válido')).toHaveAttribute('data-slot', 'field-error');
+  expect(queryAppAlert()).not.toBeInTheDocument();
   expect(auth.register).not.toHaveBeenCalled();
   expect(screen.getByRole('button', { name: 'Registrarse y Entrar' })).toBeDisabled();
   await user.clear(screen.getByLabelText('Email'));
@@ -36,16 +37,16 @@ it('keeps registration closed on a failed email check and allows retry', async (
   await user.type(screen.getByLabelText('Email'), 'valid@example.com');
   await user.type(screen.getByLabelText('Contraseña'), 'Password1');
   await user.click(screen.getByRole('button', { name: 'Registrarse y Entrar' }));
-  expect(await screen.findByRole('alert')).toHaveTextContent('No hay conexión');
+  expect(await findAppAlert()).toHaveTextContent('No hay conexión');
   expect(auth.register).not.toHaveBeenCalled();
   expect(screen.getByRole('button', { name: 'Registrarse y Entrar' })).toBeEnabled();
   expect(screen.getByLabelText('Email')).toHaveValue('valid@example.com');
 });
 it('guards oversized titles and invalid calendar dates before submission', async () => {
   const create = vi.fn(); render(<TaskForm onCreate={create} onError={vi.fn()} />);
-  fireEvent.change(screen.getByPlaceholderText('Nueva tarea...'), { target: { value: 'a'.repeat(201) } });
+  fireEvent.input(screen.getByPlaceholderText('Nueva tarea...'), { target: { value: 'a'.repeat(201) } });
   expect(screen.getByRole('button', { name: 'Agregar' })).toBeDisabled();
-  expect(screen.getByText('El título no puede superar 200 caracteres.')).toHaveClass('invalid-feedback');
+  expect(screen.getByText('El título no puede superar 200 caracteres.')).toHaveAttribute('data-slot', 'field-error');
   expect(create).not.toHaveBeenCalled();
   for (const date of ['0000-01-01', '2025-02-29', '2026-04-31', '10000-01-01']) expect(validateDate(date)).not.toBe('');
   for (const date of ['', '0001-01-01', '2024-02-29', '9999-12-31']) expect(validateDate(date)).toBe('');
@@ -68,8 +69,8 @@ it('validates empty titles, max length and dates next to the field', async () =>
   expect(screen.getByRole('button', { name: 'Agregar' })).toBeDisabled();
   expect(screen.getByPlaceholderText('Nueva tarea...')).toHaveAttribute('maxlength', '200');
   await user.type(screen.getByPlaceholderText('Nueva tarea...'), 'Tarea');
-  fireEvent.change(screen.getByLabelText('Fecha de inicio'), { target: { value: '2026-11-20' } });
-  fireEvent.change(screen.getByLabelText('Fecha de término'), { target: { value: '2026-11-19' } });
+  fireEvent.input(screen.getByLabelText('Fecha de inicio'), { target: { value: '2026-11-20' } });
+  fireEvent.input(screen.getByLabelText('Fecha de término'), { target: { value: '2026-11-19' } });
   expect(screen.getByText(/no puede ser anterior/)).toBeVisible();
   expect(screen.getByRole('button', { name: 'Agregar' })).toBeDisabled();
   expect(create).not.toHaveBeenCalled();
@@ -101,7 +102,7 @@ it('renders backend fields and handles Retry-After', async () => {
   await user.type(screen.getByLabelText('Email'), 'andre@example.com');
   await user.type(screen.getByLabelText('Contraseña'), 'Password1');
   await user.click(screen.getByRole('button', { name: 'Entrar' }));
-  expect(screen.getByLabelText('Email')).toHaveClass('is-invalid');
+  expect(screen.getByLabelText('Email')).toHaveAttribute('aria-invalid', 'true');
   await user.click(screen.getByRole('button', { name: 'Entrar' }));
   expect(screen.getByRole('button', { name: 'Espera 1 s' })).toBeDisabled();
   await waitFor(() => expect(screen.getByRole('button', { name: 'Entrar' })).toBeEnabled(), { timeout: 2000 });

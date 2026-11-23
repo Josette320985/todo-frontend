@@ -29,7 +29,7 @@ export default function TaskSummary({ tasks }: Props) {
     const text = useMemo(() => formatTaskCounts(countTasks(tasks)), [tasks]);
 
     return (
-        <h4 className="h6 text-muted mb-3" aria-live="polite">
+        <h4 className="mb-3 text-sm font-medium text-neutral-500 dark:text-neutral-400" aria-live="polite">
             {text}
         </h4>
     );

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import TaskList from '../components/TaskList';
 import * as api from '../api/tasks';
 import type { Task } from '../types/task';
+import { queryAppAlert } from './alerts';
 vi.mock('../api/tasks', () => ({ listTasks: vi.fn(), createTask: vi.fn(), updateTask: vi.fn(), removeTask: vi.fn() }));
 let rows: Task[];
 beforeEach(() => {
@@ -37,9 +38,9 @@ it('keeps a backend date validation error beside its field without a global aler
     const user = userEvent.setup(); render(<TaskList />);
     await user.type(screen.getByPlaceholderText('Nueva tarea...'), 'Pendiente');
     await user.click(screen.getByRole('button', { name: 'Agregar' }));
-    expect(await screen.findByText('Fecha inválida')).toHaveClass('invalid-feedback');
-    expect(screen.getByLabelText('Fecha de término')).toHaveClass('is-invalid');
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(await screen.findByText('Fecha inválida')).toHaveAttribute('data-slot', 'field-error');
+    expect(screen.getByLabelText('Fecha de término')).toHaveAttribute('aria-invalid', 'true');
+    expect(queryAppAlert()).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText('Nueva tarea...')).toHaveValue('Pendiente');
   } finally { spy.mockRestore(); }
 });
@@ -64,13 +65,13 @@ it('preserves create, toggle, edit, cancel and delete', async () => {
   await user.click(screen.getByRole('checkbox'));
   await waitFor(() => expect(screen.getByRole('checkbox')).toBeChecked());
   await user.click(screen.getByRole('button', { name: 'Modificar: Primera' }));
-  let row = screen.getByRole('button', { name: 'Guardar' }).closest('.list-group-item')!;
+  let row = screen.getByRole('button', { name: 'Guardar' }).closest('.task-row')!;
   await user.clear(within(row as HTMLElement).getByRole('textbox', { name: 'Título de la tarea' }));
   await user.type(within(row as HTMLElement).getByRole('textbox', { name: 'Título de la tarea' }), 'Descartada');
   await user.click(screen.getByRole('button', { name: 'Cancelar' }));
   expect(screen.getByText('Primera')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Modificar: Primera' }));
-  row = screen.getByRole('button', { name: 'Guardar' }).closest('.list-group-item')!;
+  row = screen.getByRole('button', { name: 'Guardar' }).closest('.task-row')!;
   await user.clear(within(row as HTMLElement).getByRole('textbox', { name: 'Título de la tarea' }));
   await user.type(within(row as HTMLElement).getByRole('textbox', { name: 'Título de la tarea' }), 'Editada');
   await user.click(screen.getByRole('button', { name: 'Guardar' }));
@@ -116,7 +117,7 @@ it('uses mutation responses without reloading the whole list', async () => {
   await waitFor(() => expect(screen.getByRole('checkbox')).toBeChecked());
 
   await user.click(screen.getByRole('button', { name: 'Modificar: Primera' }));
-  const row = screen.getByRole('button', { name: 'Guardar' }).closest('.list-group-item') as HTMLElement;
+  const row = screen.getByRole('button', { name: 'Guardar' }).closest('.task-row') as HTMLElement;
   await user.clear(within(row).getByRole('textbox', { name: 'Título de la tarea' }));
   await user.type(within(row).getByRole('textbox', { name: 'Título de la tarea' }), 'Editada');
   await user.click(screen.getByRole('button', { name: 'Guardar' }));
@@ -155,7 +156,7 @@ it('restores the original task when editing fails', async () => {
     const user = userEvent.setup(); render(<TaskList />);
     await screen.findByText('Original');
     await user.click(screen.getByRole('button', { name: 'Modificar: Original' }));
-    const row = screen.getByRole('button', { name: 'Guardar' }).closest('.list-group-item') as HTMLElement;
+    const row = screen.getByRole('button', { name: 'Guardar' }).closest('.task-row') as HTMLElement;
     const field = within(row).getByRole('textbox', { name: 'Título de la tarea' });
     await user.clear(field);
     await user.type(field, 'Cambio');

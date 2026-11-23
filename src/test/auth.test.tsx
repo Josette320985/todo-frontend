@@ -7,6 +7,7 @@ import AuthProvider from '../components/AuthProvider';
 import { useAuth } from '../hooks/useAuth';
 import { AUTH_UNAUTHORIZED_EVENT } from '../api/client';
 import * as auth from '../api/auth';
+import { findAppAlert } from './alerts';
 
 vi.mock('../api/auth', () => ({ login: vi.fn(), register: vi.fn(), logout: vi.fn(), getCurrentUser: vi.fn() }));
 vi.mock('../api/tasks', () => ({ listTasks: vi.fn().mockResolvedValue([]) }));
@@ -63,7 +64,7 @@ it('tells the user the session expired when the stored token is rejected', async
     throw new Error('401');
   });
   render(<AuthProvider><App /></AuthProvider>);
-  expect(await screen.findByRole('alert')).toHaveTextContent('Tu sesión expiró. Vuelve a iniciar sesión.');
+  expect(await findAppAlert()).toHaveTextContent('Tu sesión expiró. Vuelve a iniciar sesión.');
   expect(screen.getByRole('heading', { name: 'Iniciar Sesión' })).toBeInTheDocument();
 });
 

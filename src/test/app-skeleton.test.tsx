@@ -64,11 +64,11 @@ describe('skeleton global', () => {
     render(<AuthProvider><App /></AuthProvider>);
     expect(document.getElementById('boot-skeleton')).toHaveAttribute('hidden');
     const nav = screen.getByRole('navigation');
-    expect(nav.querySelectorAll('.placeholder')).toHaveLength(1);
+    expect(nav.querySelectorAll('[data-skeleton]')).toHaveLength(1);
 
     await act(async () => { resolveProfile({ id: 1, email: 'jj@example.com' }); });
 
     expect(await screen.findByText('jj@example.com')).toBeInTheDocument();
-    expect(nav.querySelectorAll('.placeholder')).toHaveLength(0);
+    expect(nav.querySelectorAll('[data-skeleton]')).toHaveLength(0);
   });
 });

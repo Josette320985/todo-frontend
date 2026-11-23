@@ -1,7 +1,6 @@
 // TEST-08: component interactions that are already implemented.
 import { expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { ListGroup } from 'react-bootstrap';
 import userEvent from '@testing-library/user-event';
 import LoginForm from '../components/LoginForm';
 import TaskItem from '../components/TaskItem';
@@ -33,8 +32,8 @@ it('toggles a task when its text is clicked (UX-09)', async () => {
   const task: Task = { id: 7, title: 'Pagar luz', description: null, completed: false, start_date: null, end_date: null };
   const onToggle = vi.fn().mockResolvedValue(true);
   const user = userEvent.setup();
-  render(<ListGroup><TaskItem task={task} editing={false} onEdit={vi.fn()} onToggle={onToggle}
-    onDelete={vi.fn()} onUpdate={vi.fn()} onError={vi.fn()} /></ListGroup>);
+  render(<ul><TaskItem task={task} editing={false} onEdit={vi.fn()} onToggle={onToggle}
+    onDelete={vi.fn()} onUpdate={vi.fn()} onError={vi.fn()} /></ul>);
 
   expect(screen.getByRole('checkbox', { name: 'Pagar luz' })).toHaveAttribute('id', 'task-7');
   await user.click(screen.getByText('Pagar luz'));

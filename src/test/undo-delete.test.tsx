@@ -46,7 +46,7 @@ it('Deshacer restaura la tarea en su posición original y no llama al DELETE', a
 
     fireEvent.click(screen.getByRole('button', { name: 'Deshacer eliminación de Pagar luz' }));
     expect(rowIds()).toEqual(['task-1', 'task-2', 'task-3']);
-    expect(screen.queryByText('Tarea eliminada ·')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tarea eliminada')).not.toBeInTheDocument();
 
     await act(async () => { vi.advanceTimersByTime(5000); });
     expect(api.removeTask).not.toHaveBeenCalled();

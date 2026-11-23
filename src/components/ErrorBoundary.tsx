@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { Button } from '@ui-sdk/react/button';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -38,23 +39,16 @@ export class ErrorBoundary extends Component<
     if (this.state.hasError) {
       const isDev = import.meta.env.DEV;
       return (
-        <div className="d-flex flex-column align-items-center justify-content-center min-vh-100 p-4 text-center">
-          <h1 className="mb-3">Algo salió mal</h1>
+        <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-neutral-50 p-6 text-center text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50">
+          <h1 className="text-3xl font-semibold tracking-tight">Algo salió mal</h1>
           {isDev && this.state.error ? (
-            <pre
-              className="text-start bg-light p-3 rounded mb-3"
-              style={{ maxWidth: '100%', overflow: 'auto' }}
-            >
+            <pre className="max-w-full overflow-auto rounded-lg border border-neutral-200 bg-white p-4 text-start text-xs dark:border-neutral-800 dark:bg-neutral-900">
               {this.state.error.stack ?? this.state.error.message}
             </pre>
           ) : null}
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={this.handleReload}
-          >
+          <Button data-variant="solid" className="h-10 px-5" onClick={this.handleReload}>
             Recargar
-          </button>
+          </Button>
         </div>
       );
     }

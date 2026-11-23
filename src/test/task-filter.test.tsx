@@ -26,7 +26,7 @@ it('shows the three options with "Todas" selected and every task', async () => {
   render(<TaskList />);
   await screen.findByText('Comprar pan');
 
-  expect(screen.getByRole('group', { name: 'Filtrar tareas' })).toBeInTheDocument();
+  expect(screen.getByRole('radiogroup', { name: 'Filtrar tareas' })).toBeInTheDocument();
   expect(screen.getByRole('radio', { name: 'Todas' })).toBeChecked();
   expect(screen.getByRole('radio', { name: 'Pendientes' })).not.toBeChecked();
   expect(screen.getByRole('radio', { name: 'Completadas' })).not.toBeChecked();

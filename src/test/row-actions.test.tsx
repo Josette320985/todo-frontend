@@ -48,8 +48,8 @@ it('hides the row now and sends DELETE when the toast expires', async () => {
   try {
     fireEvent.click(screen.getByRole('button', { name: 'Eliminar: Pagar luz' }));
     await act(async () => { await Promise.resolve(); });
-    expect(screen.queryByText('Pagar luz')).not.toBeInTheDocument();
-    expect(screen.getByText('Tarea eliminada ·')).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: 'Pagar luz' })).not.toBeInTheDocument();
+    expect(screen.getByText('Tarea eliminada')).toBeInTheDocument();
     expect(api.removeTask).not.toHaveBeenCalled();
 
     await act(async () => { vi.advanceTimersByTime(5000); });

@@ -1,304 +1,192 @@
+@layer ui-sdk;
+@import "tailwindcss";
+@import "@ui-sdk/core/web.css" layer(components);
+
 /*
- * Design and motion tokens for the To-Do app (UX-15).
- *
- * Bootstrap 5.3 already provides the color, spacing and radius scales, so
- * this file only declares what Bootstrap does not: the shared motion
- * vocabulary (curve + durations) and a few layout constants used by the
- * task rows. Components consume them through var(--token) instead of
- * hard-coding timings, which keeps every animation consistent.
+ * Theme (new-ui): ui-sdk tokens on a neutral base with an indigo accent.
+ * Contrast checked: --ui-primary-foreground on --ui-primary is above 4.5:1 in
+ * both schemes. web.css follows prefers-color-scheme through light-dark().
  */
 :root {
-  /* Motion: a single decelerating curve for entrances and a shorter
-   * accelerating one for exits. Durations follow the UX stories:
-   * 150 ms for frequent feedback, 200 ms for entrances, 300 ms maximum. */
+  --ui-primary: light-dark(oklch(0.51 0.23 277), oklch(0.68 0.16 277));
+  --ui-primary-foreground: light-dark(oklch(1 0 0), oklch(0.145 0 0));
+  --ui-ring: light-dark(oklch(0.51 0.23 277 / 0.25), oklch(0.68 0.16 277 / 0.35));
+  --ui-ring-border: light-dark(oklch(0.51 0.23 277), oklch(0.68 0.16 277));
+  --ui-radius: 0.5rem;
+  --ui-font-size: 0.875rem;
+
+  /* Motion vocabulary (UX-15): 150 ms feedback, 200 ms entrances, 300 ms max. */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --duration-fast: 150ms;
   --duration-base: 200ms;
   --duration-slow: 300ms;
-
-  /* Minimum touch target for icon-only actions (UX-07). */
-  --touch-target: 2.5rem;
-
-  /* Keyboard focus ring shared by interactive controls (UX-09). */
-  --focus-ring-width: 0.25rem;
-  --focus-ring-color: rgba(var(--bs-primary-rgb), 0.25);
 }
 
-/*
- * Dark mode (UX-22).
- *
- * Bootstrap 5.3 restyles its own components from [data-bs-theme="dark"];
- * main.tsx sets that attribute from prefers-color-scheme. The only legacy
- * utility left in the app shell is .bg-light, which is a fixed color and
- * would keep the page white in dark mode, so it is mapped to the themed
- * body background here instead of editing App.tsx (shared with UX-06/14).
- */
-[data-bs-theme='dark'] .bg-light {
-  background-color: var(--bs-body-bg) !important;
-}
-
-/*
- * Button press feedback (UX-16).
- *
- * Every .btn scales down slightly while pressed. The transform is appended
- * to Bootstrap's own transition list instead of replacing it, so the
- * existing color, border and shadow transitions keep working.
- *
- * The press uses a shorter duration than the release: 3% is small, so on a
- * regular click it has to reach its full size before the button is
- * released. Pressing snaps in 60 ms; releasing eases back over 150 ms.
- */
-.btn {
-  transition:
-    color var(--duration-fast) ease-in-out,
-    background-color var(--duration-fast) ease-in-out,
-    border-color var(--duration-fast) ease-in-out,
-    box-shadow var(--duration-fast) ease-in-out,
-    transform var(--duration-fast) var(--ease-out);
-}
-
-.btn:active {
-  transform: scale(0.97);
-  transition-duration: 60ms;
-}
-
-/*
- * Completing a task (UX-18).
- *
- * Marking a task is a high-frequency action, so the label only fades its
- * color and the color of the strike-through; no bounce or scale. React
- * Bootstrap renders the <input> immediately before its <label>, which lets
- * the checked state style the text without adding JSX.
- */
-.form-check-label {
-  transition:
-    color var(--duration-fast) ease,
-    text-decoration-color var(--duration-fast) ease;
-}
-
-.form-check-input:checked + .form-check-label {
-  color: var(--bs-secondary-color);
-}
-
-/*
- * Reduced motion (UX-21).
- *
- * Users who ask the operating system for less motion keep the color fades
- * (they help show state changes) but lose every movement: the button no
- * longer scales when pressed. Rules that add transform-based hovers must be
- * declared inside `@media (hover: hover) and (pointer: fine)` so touch
- * devices never get a hover state stuck after a tap.
- */
-@media (prefers-reduced-motion: reduce) {
-  .btn {
+@layer components {
+  /* Button press feedback (UX-16): snaps in 60 ms, eases back over 150 ms. */
+  [data-slot="button"] {
     transition:
       color var(--duration-fast) ease-in-out,
       background-color var(--duration-fast) ease-in-out,
       border-color var(--duration-fast) ease-in-out,
-      box-shadow var(--duration-fast) ease-in-out;
+      box-shadow var(--duration-fast) ease-in-out,
+      transform var(--duration-fast) var(--ease-out);
   }
 
-  .btn:active {
-    transform: none;
+  [data-slot="button"]:active:not([data-disabled]) {
+    transform: scale(0.97);
+    transition-duration: 60ms;
   }
-}
 
-/*
- * Login <-> Register crossfade (UX-20).
- *
- * The title and the submit label swap without a page transition. Both states
- * are stacked in the same grid cell and crossfade opacity and blur over
- * 150 ms; stacking them also keeps the layout from jumping when the longer
- * label ("Registrarse y Entrar") becomes active.
- */
-.auth-title,
-.auth-action {
-  display: grid;
-}
+  /* Login <-> Register crossfade (UX-20): both labels share one grid cell. */
+  .auth-title,
+  .auth-action {
+    display: grid;
+  }
 
-.auth-title-option,
-.auth-action-option {
-  grid-area: 1 / 1;
-  opacity: 0;
-  filter: blur(2px);
-  transition:
-    opacity var(--duration-fast) var(--ease-out),
-    filter var(--duration-fast) var(--ease-out);
-}
-
-.auth-action-option {
-  justify-self: center;
-}
-
-.auth-title-option.is-active,
-.auth-action-option.is-active {
-  opacity: 1;
-  filter: blur(0);
-}
-
-/* Reduced motion keeps the opacity fade but drops the blur (UX-21). */
-@media (prefers-reduced-motion: reduce) {
   .auth-title-option,
   .auth-action-option {
-    filter: none;
-  }
-}
-
-/*
- * Loading skeleton of the task list (UX-01).
- *
- * Bootstrap's .placeholder-glow pulses the grey rows; users who ask for less
- * motion get static rows instead (UX-21).
- */
-@media (prefers-reduced-motion: reduce) {
-  .placeholder-glow .placeholder {
-    animation: none;
-  }
-}
-
-/*
- * Task rows entering the list (UX-17).
- *
- * A new row fades in and rises 4px over 200 ms. @starting-style gives the
- * values the row starts from on its first render, so no JavaScript is
- * needed. Existing rows keep their React key and never replay it. The exit
- * (fade, then height collapse) runs in src/lib/motion.ts because the row
- * must stay mounted until the animation ends.
- */
-.task-row {
-  transition:
-    opacity var(--duration-base) var(--ease-out),
-    transform var(--duration-base) var(--ease-out);
-}
-
-@starting-style {
-  .task-row {
+    grid-area: 1 / 1;
     opacity: 0;
-    transform: translateY(4px);
+    filter: blur(2px);
+    transition:
+      opacity var(--duration-fast) var(--ease-out),
+      filter var(--duration-fast) var(--ease-out);
   }
-}
 
-/* Reduced motion keeps the fade and drops the rise (UX-21). */
-@media (prefers-reduced-motion: reduce) {
+  .auth-action-option {
+    justify-self: center;
+  }
+
+  .auth-title-option.is-active,
+  .auth-action-option.is-active {
+    opacity: 1;
+    filter: blur(0);
+  }
+
+  /* Task rows enter with a 4px rise (UX-17); the exit runs in lib/motion.ts. */
   .task-row {
-    transition: opacity var(--duration-base) var(--ease-out);
+    transition:
+      opacity var(--duration-base) var(--ease-out),
+      transform var(--duration-base) var(--ease-out),
+      background-color var(--duration-fast) ease;
   }
 
   @starting-style {
     .task-row {
-      transform: none;
+      opacity: 0;
+      transform: translateY(4px);
     }
   }
-}
 
-/*
- * Row actions as icon buttons (UX-07).
- *
- * Every button keeps a 40x40 px touch target. On devices with a precise
- * pointer that can hover (mouse, trackpad) the actions stay dimmed until the
- * row is hovered or one of its controls has keyboard focus, so the list reads
- * calmer; on touch screens they are always fully visible.
- */
-.icon-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 40px;
-  min-height: 40px;
-  padding: 0;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .task-actions {
-    opacity: 0.45;
-    transition: opacity var(--duration-base) var(--ease-out);
+  /* Completing a task fades the label color and strike (UX-18). */
+  .task-title {
+    transition:
+      color var(--duration-fast) ease,
+      text-decoration-color var(--duration-fast) ease;
   }
 
-  .task-row:hover .task-actions,
-  .task-row:focus-within .task-actions {
-    opacity: 1;
+  /* Icon actions keep a 40x40 px target (UX-07) and dim until hover or focus
+     on precise pointers only, so touch screens never hide them. */
+  .icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0;
   }
-}
 
-/*
- * Task description under the title (UX-12): at most two lines, the rest is
- * cut with an ellipsis. Line breaks typed by the user are kept.
- */
-.task-description {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
-  white-space: pre-line;
-}
+  @media (hover: hover) and (pointer: fine) {
+    .task-actions {
+      opacity: 0.45;
+      transition: opacity var(--duration-base) var(--ease-out);
+    }
 
-/*
- * Long texts and small screens (UX-13).
- *
- * A flex child does not shrink below its content by default, so a 200
- * character title without spaces pushed the buttons out of the card.
- * min-width: 0 lets the text column shrink and overflow-wrap breaks the
- * word anywhere. Below 576 px the buttons wrap under the title instead of
- * squeezing it, and inputs use 16 px text so iOS does not zoom on focus.
- */
-.task-main {
-  flex: 1 1 12rem;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.task-actions {
-  flex-shrink: 0;
-  margin-left: auto;
-}
-
-@media (max-width: 575.98px) {
-  .form-control,
-  .form-control-sm,
-  .form-select {
-    font-size: 1rem;
+    .task-row:hover .task-actions,
+    .task-row:focus-within .task-actions {
+      opacity: 1;
+    }
   }
-}
 
-/*
- * Alerts and toasts (UX-19).
- *
- * Entry: opacity + translateY(-4px), 200 ms var(--ease-out).
- * Exit: 150 ms.
- * The "Deshacer" toast enters and exits from the same corner (bottom-center)
- * for spatial consistency: translateY(-4px) on entry slides it up from its
- * resting position.
- *
- * React Bootstrap drives the enter/exit via the .fade/.show classes, so the
- * durations are split by state: 200 ms while .show is present (entry) and
- * 150 ms otherwise (exit).
- */
-.alert.fade,
-.toast.fade {
-  opacity: 0;
-  transform: translateY(-4px);
-  transition:
-    opacity 150ms var(--ease-out),
-    transform 150ms var(--ease-out);
-}
+  /* Description: two lines at most, keeping the user's line breaks (UX-12). */
+  .task-description {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    white-space: pre-line;
+  }
 
-.alert.fade.show,
-.toast.fade.show {
-  opacity: 1;
-  transform: translateY(0);
-  transition:
-    opacity 200ms var(--ease-out),
-    transform 200ms var(--ease-out);
-}
+  /* Long titles without spaces must not push the actions out (UX-13). */
+  .task-main {
+    flex: 1 1 12rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
 
-/* Reduced motion keeps the opacity fade but drops the transform (UX-21). */
-@media (prefers-reduced-motion: reduce) {
-  .alert.fade,
-  .toast.fade,
-  .alert.fade.show,
-  .toast.fade.show {
-    transform: none;
+  /* iOS zooms into inputs under 16px text (UX-13). */
+  @media (max-width: 575.98px) {
+    [data-slot="input"],
+    [data-slot="textarea"],
+    [data-slot="password-input-control"] {
+      font-size: 1rem;
+    }
+  }
+
+  /* Alerts enter like toasts: fade and 4px rise over 200 ms (UX-19). */
+  .app-alert {
+    transition:
+      opacity var(--duration-base) var(--ease-out),
+      transform var(--duration-base) var(--ease-out);
+  }
+
+  @starting-style {
+    .app-alert {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
+
+  [data-slot="toast"] {
+    transition:
+      opacity var(--duration-base) var(--ease-out),
+      transform var(--duration-base) var(--ease-out);
+  }
+
+  [data-slot="toast"][data-starting-style],
+  [data-slot="toast"][data-ending-style] {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  [data-slot="toast"][data-ending-style] {
+    transition-duration: var(--duration-fast);
+  }
+
+  /* Reduced motion keeps every fade and drops movement and blur (UX-21). */
+  @media (prefers-reduced-motion: reduce) {
+    [data-slot="button"]:active:not([data-disabled]) {
+      transform: none;
+    }
+
+    .auth-title-option,
+    .auth-action-option {
+      filter: none;
+    }
+
+    @starting-style {
+      .task-row,
+      .app-alert {
+        transform: none;
+      }
+    }
+
+    [data-slot="toast"][data-starting-style],
+    [data-slot="toast"][data-ending-style] {
+      transform: none;
+    }
   }
 }

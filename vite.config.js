@@ -1,3 +1,4 @@
+import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { apiProxy } from './api-proxy.js'
@@ -14,6 +15,7 @@ export default defineConfig({
   server: { proxy: { '/api': apiProxy() } },
   plugins: [
     react(),
+    tailwindcss(),
     {
       name: 'defer-built-css',
       transformIndexHtml: {

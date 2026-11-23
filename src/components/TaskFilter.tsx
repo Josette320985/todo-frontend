@@ -1,4 +1,4 @@
-import { ToggleButton, ToggleButtonGroup } from 'react-bootstrap';
+import { SegmentedControl, SegmentedControlIndicator, SegmentedControlItem } from '@ui-sdk/react/segmented-control';
 import { TASK_FILTER_OPTIONS, type TaskFilter as Filter } from '../lib/taskFilter';
 
 interface Props {
@@ -9,25 +9,18 @@ interface Props {
 /** Segmented control: Todas / Pendientes / Completadas. Local state only. */
 export default function TaskFilter({ value, onChange }: Props) {
   return (
-    <ToggleButtonGroup
-      type="radio"
-      name="task-filter"
-      value={value}
-      onChange={(next: Filter) => onChange(next)}
-      className="w-100 mb-3"
+    <SegmentedControl
       aria-label="Filtrar tareas"
+      value={value}
+      onValueChange={next => { if (next) onChange(next as Filter); }}
+      className="mb-4 flex w-full"
     >
+      <SegmentedControlIndicator />
       {TASK_FILTER_OPTIONS.map(option => (
-        <ToggleButton
-          key={option.value}
-          id={`task-filter-${option.value}`}
-          value={option.value}
-          variant="outline-primary"
-          size="sm"
-        >
+        <SegmentedControlItem key={option.value} value={option.value} className="flex-1">
           {option.label}
-        </ToggleButton>
+        </SegmentedControlItem>
       ))}
-    </ToggleButtonGroup>
+    </SegmentedControl>
   );
 }

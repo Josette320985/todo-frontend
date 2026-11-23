@@ -1,10 +1,15 @@
 import { useState, type FormEvent } from 'react';
-import { Form, Button, Alert, Card } from 'react-bootstrap';
+import { Button } from '@ui-sdk/react/button';
+import { Field, FieldDescription, FieldError, FieldLabel } from '@ui-sdk/react/field';
+import { Input } from '@ui-sdk/react/input';
+import { PasswordInput, PasswordInputControl, PasswordInputToggle } from '@ui-sdk/react/password-input';
 import { getApiError, getFormErrorMessage } from '../api/errors';
 import { validateEmail, validatePassword } from '../lib/validation';
 import { validateRegistrationEmail } from '../api/auth';
 import { useCooldown } from '../hooks/useCooldown';
 import { useAuth } from '../hooks/useAuth';
+import { cardClass, mutedTextClass } from '../lib/ui';
+import Alert from './Alert';
 
 export default function LoginForm() {
   const { login, register } = useAuth();
@@ -17,6 +22,8 @@ export default function LoginForm() {
   const { remaining, start } = useCooldown();
   const passwordError = isRegister && password ? validatePassword(password) : '';
   const emailError = isRegister ? validateEmail(email) || fields.email || fields.username || '' : '';
+  const shownEmailError = (email && emailError) || fields.email || fields.username || '';
+  const shownPasswordError = passwordError || fields.password || '';
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (pending || remaining || (isRegister && (emailError || validatePassword(password)))) return;
@@ -34,38 +41,42 @@ export default function LoginForm() {
       const info = getApiError(err); setError(getFormErrorMessage(info, ['email', 'username', 'password'])); setFields(info.fieldErrors); start(info.retryAfter);
     } finally { setPending(false); }
   };
-  return <Card className="mx-auto mt-5" style={{ maxWidth: '400px' }}><Card.Body>
-    <h3 className="text-center mb-4 auth-title">
+  return <section className={`${cardClass} max-w-md`}>
+    <h3 className="auth-title mb-1 text-center text-2xl font-semibold tracking-tight">
       <span className={`auth-title-option${isRegister ? '' : ' is-active'}`} aria-hidden={isRegister}>Iniciar Sesión</span>
       <span className={`auth-title-option${isRegister ? ' is-active' : ''}`} aria-hidden={!isRegister}>Registro</span>
     </h3>
-    {error && <Alert variant="danger">{error}</Alert>}
-    <Form onSubmit={handleSubmit}>
-      <Form.Group className="mb-3" controlId="auth-email">
-        <Form.Label>Email</Form.Label>
-        <Form.Control type="text" inputMode="email" autoCapitalize="none" spellCheck={false} value={email} required autoComplete="email" maxLength={2048} disabled={pending}
-          isInvalid={Boolean((email && emailError) || fields.email || fields.username)} aria-describedby="email-error"
-          onChange={event => { setEmail(event.target.value); setFields({}); }} />
-        <Form.Control.Feedback type="invalid" id="email-error" aria-live="polite">{(email && emailError) || fields.email || fields.username}</Form.Control.Feedback>
-      </Form.Group>
-      <Form.Group className="mb-3" controlId="auth-password">
-        <Form.Label>Contraseña</Form.Label>
-        <Form.Control type="password" value={password} required disabled={pending}
-          isInvalid={Boolean(passwordError || fields.password)} aria-describedby="password-help password-error"
-          autoComplete={isRegister ? 'new-password' : 'current-password'}
-          onChange={event => { setPassword(event.target.value); setFields({}); }} />
-        {isRegister && <Form.Text id="password-help">Mínimo 8 caracteres, con al menos una letra y un número. Máximo 72 bytes UTF-8.</Form.Text>}
-        <Form.Control.Feedback type="invalid" id="password-error" aria-live="polite">{passwordError || fields.password}</Form.Control.Feedback>
-      </Form.Group>
-      <Button type="submit" variant="primary" className="w-100 mb-3" disabled={Boolean(pending || remaining || passwordError || emailError)}>
+    <p className={`${mutedTextClass} mb-6 text-center`}>
+      {isRegister ? 'Crea tu cuenta para guardar tus tareas.' : 'Entra para ver tus tareas.'}
+    </p>
+    {error && <Alert className="mb-4">{error}</Alert>}
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <Field invalid={Boolean(shownEmailError)} disabled={pending}>
+        <FieldLabel>Email</FieldLabel>
+        <Input type="text" inputMode="email" autoCapitalize="none" spellCheck={false} value={email} required autoComplete="email" maxLength={2048}
+          onValueChange={value => { setEmail(value); setFields({}); }} />
+        {shownEmailError && <FieldError match aria-live="polite">{shownEmailError}</FieldError>}
+      </Field>
+      <Field invalid={Boolean(shownPasswordError)} disabled={pending}>
+        <FieldLabel>Contraseña</FieldLabel>
+        <PasswordInput value={password} required autoComplete={isRegister ? 'new-password' : 'current-password'}
+          onValueChange={value => { setPassword(value); setFields({}); }}>
+          <PasswordInputControl />
+          <PasswordInputToggle aria-label="Mostrar contraseña" />
+        </PasswordInput>
+        {isRegister && <FieldDescription>Mínimo 8 caracteres, con al menos una letra y un número. Máximo 72 bytes UTF-8.</FieldDescription>}
+        {shownPasswordError && <FieldError match aria-live="polite">{shownPasswordError}</FieldError>}
+      </Field>
+      <Button type="submit" data-variant="solid" className="mt-2 h-10 w-full" disabled={Boolean(pending || remaining || passwordError || emailError)}>
         {pending ? (isRegister ? 'Creando cuenta…' : 'Entrando…') : remaining ? `Espera ${remaining} s` : <span className="auth-action">
           <span className={`auth-action-option${isRegister ? '' : ' is-active'}`} aria-hidden={isRegister}>Entrar</span>
           <span className={`auth-action-option${isRegister ? ' is-active' : ''}`} aria-hidden={!isRegister}>Registrarse y Entrar</span>
         </span>}
       </Button>
-      <div className="text-center"><Button variant="link" size="sm" disabled={pending} onClick={() => { setIsRegister(!isRegister); setFields({}); setError(''); }}>
+      <Button className="mx-auto border-transparent bg-transparent text-[var(--ui-primary)] underline-offset-4 hover:underline" disabled={pending}
+        onClick={() => { setIsRegister(!isRegister); setFields({}); setError(''); }}>
         {isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate'}
-      </Button></div>
-    </Form>
-  </Card.Body></Card>;
+      </Button>
+    </form>
+  </section>;
 }

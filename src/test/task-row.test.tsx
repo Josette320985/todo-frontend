@@ -1,13 +1,12 @@
 // Task row details: due badge (UX-11).
 import { afterEach, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { ListGroup } from 'react-bootstrap';
 import TaskItem from '../components/TaskItem';
 import type { Task } from '../types/task';
 
 const base: Task = { id: 1, title: 'Tarea', description: null, completed: false, start_date: null, end_date: null };
-const renderRow = (task: Task) => render(<ListGroup><TaskItem task={task} editing={false} onEdit={vi.fn()}
-  onToggle={vi.fn()} onDelete={vi.fn()} onUpdate={vi.fn()} onError={vi.fn()} /></ListGroup>);
+const renderRow = (task: Task) => render(<ul><TaskItem task={task} editing={false} onEdit={vi.fn()}
+  onToggle={vi.fn()} onDelete={vi.fn()} onUpdate={vi.fn()} onError={vi.fn()} /></ul>);
 
 afterEach(() => vi.useRealTimers());
 
@@ -30,8 +29,8 @@ it('shows the description under the title and edits it (UX-12)', async () => {
   const { rerender } = renderRow(task);
   expect(screen.getByText('Con leche deslactosada')).toHaveClass('task-description');
 
-  rerender(<ListGroup><TaskItem task={task} editing onEdit={vi.fn()} onToggle={vi.fn()} onDelete={vi.fn()}
-    onUpdate={onUpdate} onError={vi.fn()} /></ListGroup>);
+  rerender(<ul><TaskItem task={task} editing onEdit={vi.fn()} onToggle={vi.fn()} onDelete={vi.fn()}
+    onUpdate={onUpdate} onError={vi.fn()} /></ul>);
   const user = userEvent.setup();
   const field = screen.getByLabelText('Descripción (opcional)');
   expect(field).toHaveAttribute('maxlength', '1000');

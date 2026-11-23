@@ -1,8 +1,9 @@
 import { useId, useState, type FormEvent } from 'react';
-import { Form, Button } from 'react-bootstrap';
+import { Button } from '@ui-sdk/react/button';
 import { validateDates } from '../lib/dates';
 import { validateTitle } from '../lib/validation';
 import { TASK_LIMIT_MESSAGE } from '../lib/limits';
+import { mutedTextClass } from '../lib/ui';
 import type { TaskCreate } from '../types/task';
 import TaskFields, { type TaskDraft } from './TaskFields';
 interface Props { onCreate: (data: TaskCreate) => Promise<boolean>; onError: (message: string) => void; fieldErrors?: Record<string, string>; cooldown?: number; atLimit?: boolean }
@@ -21,13 +22,15 @@ export default function TaskForm({ onCreate, onError, fieldErrors, cooldown = 0,
       }
     } finally { setPending(false); }
   };
-  return <Form onSubmit={addTask} className="mb-4">
+  return <form onSubmit={addTask} className="mb-6 flex flex-col gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-950/40">
     <TaskFields value={value} onChange={setValue} errors={fieldErrors} disabled={pending} />
-    <Button type="submit" variant="success" className="mt-2" disabled={Boolean(invalid || pending || cooldown || atLimit)}
-      aria-describedby={atLimit ? limitId : undefined}>
-      {pending ? 'Guardando...' : cooldown ? `Espera ${cooldown} s` : 'Agregar'}
-    </Button>
-    {/* SEG-H12: warn before the backend answers 409 at the per-user cap. */}
-    {atLimit && <p id={limitId} className="small text-muted mt-2 mb-0" role="status">{TASK_LIMIT_MESSAGE}</p>}
-  </Form>;
+    <div className="flex flex-wrap items-center gap-3">
+      <Button type="submit" data-variant="solid" className="h-9 px-4" disabled={Boolean(invalid || pending || cooldown || atLimit)}
+        aria-describedby={atLimit ? limitId : undefined}>
+        {pending ? 'Guardando...' : cooldown ? `Espera ${cooldown} s` : 'Agregar'}
+      </Button>
+      {/* SEG-H12: warn before the backend answers 409 at the per-user cap. */}
+      {atLimit && <p id={limitId} className={mutedTextClass} role="status">{TASK_LIMIT_MESSAGE}</p>}
+    </div>
+  </form>;
 }
