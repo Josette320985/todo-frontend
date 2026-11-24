@@ -35,7 +35,9 @@ it('shows the description under the title and edits it (UX-12)', async () => {
   const user = userEvent.setup();
   const field = screen.getByLabelText('Descripción (opcional)');
   expect(field).toHaveAttribute('maxlength', '1000');
+  expect(screen.getByText('22/1000')).toBeInTheDocument();
   await user.clear(field);
+  expect(screen.getByText('0/1000')).toBeInTheDocument();
   await user.type(field, '  ');
   await user.click(screen.getByRole('button', { name: 'Guardar' }));
   expect(onUpdate).toHaveBeenCalledWith(1, { title: 'Tarea', description: null, start_date: null, end_date: null });
