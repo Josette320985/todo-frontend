@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Card, Alert, Button, ListGroup, Toast, ToastContainer } from 'react-bootstrap';
+import { Badge, Card, Alert, Button, ListGroup, Toast, ToastContainer } from 'react-bootstrap';
 import { useTasks } from '../hooks/useTasks';
 import type { Task, TaskSortParams } from '../types/task';
 import { DEFAULT_TASK_FILTER, EMPTY_FILTER_MESSAGE, filterTasks, type TaskFilter as Filter } from '../lib/taskFilter';
@@ -10,6 +10,15 @@ import TaskSummary from './TaskSummary';
 import { MAX_TASKS_PER_USER } from '../lib/limits';
 
 const UNDO_DELAY_MS = 5000;
+const COMPLETION_TOAST_MS = 3000;
+
+function CheckCircleIcon() {
+  return (
+    <svg width={18} height={18} viewBox="0 0 16 16" fill="currentColor" className="text-success flex-shrink-0" aria-hidden="true" focusable="false">
+      <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z" />
+    </svg>
+  );
+}
 
 // TEMPORARY test variable: sorting passed to useTasks until the sort control
 // exists. Pending first, completed last: the backend applies these fields in
@@ -37,11 +46,25 @@ export default function TaskList() {
   const { tasks, status, retry, error, fieldErrors, errorId, remaining, setError, create, update, remove, toggle } = useTasks(TEST_SORT);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [pendingDeletes, setPendingDeletes] = useState<Task[]>([]);
+  const [completedBanner, setCompletedBanner] = useState<{ key: number; id: number; title: string } | null>(null);
   // View filter: local state only, the backend is never involved.
   const [filter, setFilter] = useState<Filter>(DEFAULT_TASK_FILTER);
   const hiddenIds = useMemo(() => new Set(pendingDeletes.map(task => task.id)), [pendingDeletes]);
   const visibleTasks = tasks.filter(task => !hiddenIds.has(task.id));
   const shownTasks = filterTasks(visibleTasks, filter);
+  const allTasksCompleted = Boolean(
+    completedBanner && visibleTasks.length > 0 && visibleTasks.every(item => item.completed || item.id === completedBanner.id),
+  );
+
+  const handleCompleted = useCallback((task: Task) => {
+    setCompletedBanner({ key: Date.now(), id: task.id, title: task.title });
+  }, []);
+
+  useEffect(() => {
+    if (!completedBanner) return;
+    const timer = window.setTimeout(() => setCompletedBanner(null), COMPLETION_TOAST_MS);
+    return () => window.clearTimeout(timer);
+  }, [completedBanner]);
 
   const requestDelete = useCallback(async (id: number): Promise<boolean> => {
     const task = tasks.find(item => item.id === id);
@@ -137,7 +160,7 @@ export default function TaskList() {
             ? <ListGroup>
               {shownTasks.map(task => <TaskItem key={task.id} task={task} editing={editingId === task.id}
                 onEdit={setEditingId} onToggle={toggle} onDelete={requestDelete} onUpdate={update} onError={setError}
-                fieldErrors={errorId === task.id ? fieldErrors : {}} cooldown={remaining} />)}
+                onCompleted={handleCompleted} fieldErrors={errorId === task.id ? fieldErrors : {}} cooldown={remaining} />)}
             </ListGroup>
             : visibleTasks.length > 0 && filter !== 'all' && (
               <p className="text-muted text-center py-3 mb-0">{EMPTY_FILTER_MESSAGE[filter]}</p>
@@ -145,6 +168,21 @@ export default function TaskList() {
       </Card.Body>
     </Card>
     <ToastContainer position="bottom-center" className="p-3">
+      {completedBanner && (
+        <div key={completedBanner.key} className="toast show completion-toast shadow-sm" role="status" aria-live="polite"
+          aria-label="Tarea completada">
+          <div className="toast-body d-flex align-items-center gap-2">
+            <CheckCircleIcon />
+            <div className="min-w-0 flex-grow-1">
+              <strong className="text-success-emphasis d-block">¡Tarea completada!</strong>
+              <span className="small text-muted text-truncate d-block">{`Completaste: ${completedBanner.title}`}</span>
+            </div>
+            {allTasksCompleted && <Badge pill bg="success">¡Todo al día!</Badge>}
+            <button type="button" className="btn-close btn-close-sm ms-1" aria-label="Cerrar aviso"
+              onClick={() => setCompletedBanner(null)} />
+          </div>
+        </div>
+      )}
       {pendingDeletes.map(task => (
         <Toast key={task.id} onClose={() => commitDelete(task.id)} aria-label="Tarea eliminada">
           <Toast.Body className="d-flex align-items-center gap-2">
