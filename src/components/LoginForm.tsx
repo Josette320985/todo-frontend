@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Form, Button, Alert, Card } from 'react-bootstrap';
 import { getApiError, getFormErrorMessage } from '../api/errors';
+import { MAX_EMAIL_LENGTH, MAX_PASSWORD_LENGTH } from '../lib/limits';
 import { validateEmail, validatePassword } from '../lib/validation';
 import { validateRegistrationEmail } from '../api/auth';
 import { useCooldown } from '../hooks/useCooldown';
@@ -15,6 +16,8 @@ export default function LoginForm() {
   const [fields, setFields] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
   const { remaining, start } = useCooldown();
+  const emailLength = Array.from(email).length;
+  const passwordLength = Array.from(password).length;
   const passwordError = isRegister && password ? validatePassword(password) : '';
   const emailError = isRegister ? validateEmail(email) || fields.email || fields.username || '' : '';
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -42,19 +45,29 @@ export default function LoginForm() {
     {error && <Alert variant="danger">{error}</Alert>}
     <Form onSubmit={handleSubmit}>
       <Form.Group className="mb-3" controlId="auth-email">
-        <Form.Label>Email</Form.Label>
-        <Form.Control type="text" inputMode="email" autoCapitalize="none" spellCheck={false} value={email} required autoComplete="email" maxLength={2048} disabled={pending}
-          isInvalid={Boolean((email && emailError) || fields.email || fields.username)} aria-describedby="email-error"
+        <div className="d-flex justify-content-between align-items-baseline">
+          <Form.Label>Email</Form.Label>
+          <Form.Text id="email-count" className={emailLength >= MAX_EMAIL_LENGTH ? 'text-warning-emphasis fw-semibold' : undefined}>
+            {emailLength}/{MAX_EMAIL_LENGTH}
+          </Form.Text>
+        </div>
+        <Form.Control type="text" inputMode="email" autoCapitalize="none" spellCheck={false} value={email} required autoComplete="email" maxLength={MAX_EMAIL_LENGTH} disabled={pending}
+          isInvalid={Boolean((email && emailError) || fields.email || fields.username)} aria-describedby="email-count email-error"
           onChange={event => { setEmail(event.target.value); setFields({}); }} />
         <Form.Control.Feedback type="invalid" id="email-error" aria-live="polite">{(email && emailError) || fields.email || fields.username}</Form.Control.Feedback>
       </Form.Group>
       <Form.Group className="mb-3" controlId="auth-password">
-        <Form.Label>Contraseña</Form.Label>
-        <Form.Control type="password" value={password} required disabled={pending}
-          isInvalid={Boolean(passwordError || fields.password)} aria-describedby="password-help password-error"
+        <div className="d-flex justify-content-between align-items-baseline">
+          <Form.Label>Contraseña</Form.Label>
+          <Form.Text id="password-count" className={passwordLength >= MAX_PASSWORD_LENGTH ? 'text-warning-emphasis fw-semibold' : undefined}>
+            {passwordLength}/{MAX_PASSWORD_LENGTH}
+          </Form.Text>
+        </div>
+        <Form.Control type="password" value={password} required maxLength={MAX_PASSWORD_LENGTH} disabled={pending}
+          isInvalid={Boolean(passwordError || fields.password)} aria-describedby="password-count password-help password-error"
           autoComplete={isRegister ? 'new-password' : 'current-password'}
           onChange={event => { setPassword(event.target.value); setFields({}); }} />
-        {isRegister && <Form.Text id="password-help">Mínimo 8 caracteres, con al menos una letra y un número. Máximo 72 bytes UTF-8.</Form.Text>}
+        {isRegister && <Form.Text id="password-help">Mínimo 8 caracteres, con al menos una letra y un número. Máximo {MAX_PASSWORD_LENGTH} bytes UTF-8.</Form.Text>}
         <Form.Control.Feedback type="invalid" id="password-error" aria-live="polite">{passwordError || fields.password}</Form.Control.Feedback>
       </Form.Group>
       <Button type="submit" variant="primary" className="w-100 mb-3" disabled={Boolean(pending || remaining || passwordError || emailError)}>
