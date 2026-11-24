@@ -17,11 +17,14 @@ interface Props {
   task: Task; editing: boolean; onEdit: (id: number | null) => void;
   onToggle: (task: Task) => Promise<boolean>; onDelete: (id: number) => Promise<boolean>;
   onUpdate: (id: number, data: TaskUpdate) => Promise<boolean>; onError: (message: string) => void;
+  onCompleted?: (task: Task) => void;
   fieldErrors?: Record<string, string>; cooldown?: number;
 }
-export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, onUpdate, onError, fieldErrors, cooldown = 0 }: Props) {
+const CELEBRATE_DURATION_MS = 1400;
+export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, onUpdate, onError, onCompleted, fieldErrors, cooldown = 0 }: Props) {
   const [value, setValue] = useState<TaskDraft>({ title: task.title, description: task.description || '', start: task.start_date || '', end: task.end_date || '' });
   const [pending, setPending] = useState(false);
+  const [justCompleted, setJustCompleted] = useState(false);
   // react-bootstrap types ListGroup.Item's ref as an anchor; it renders a div.
   const row = useRef<HTMLElement>(null);
   // UX-08: after saving or cancelling, focus goes back to this row's edit
@@ -35,6 +38,11 @@ export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, on
       editButton.current?.focus();
     }
   }, [editing]);
+  useEffect(() => {
+    if (!justCompleted) return;
+    const timer = window.setTimeout(() => setJustCompleted(false), CELEBRATE_DURATION_MS);
+    return () => window.clearTimeout(timer);
+  }, [justCompleted]);
   const close = () => { returnFocus.current = true; onEdit(null); };
   const cancel = () => { onError(''); close(); };
   // Enter already submits the form (save); Escape cancels.
@@ -49,6 +57,15 @@ export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, on
     setPending(true);
     try { return await operation(); } finally { setPending(false); }
   };
+  const toggle = async () => {
+    const completing = !task.completed;
+    if (!completing) setJustCompleted(false);
+    const toggled = await run(() => onToggle(task));
+    if (toggled && completing) {
+      setJustCompleted(true);
+      onCompleted?.(task);
+    }
+  };
   // Fade and collapse the row first (UX-17); bring it back if the delete fails.
   const remove = () => run(async () => {
     const exit = row.current ? await animateRowExit(row.current) : undefined;
@@ -62,7 +79,10 @@ export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, on
     if (invalid) return;
     if (await run(() => onUpdate(task.id, { title: value.title.trim(), description: value.description.trim() || null, start_date: value.start || null, end_date: value.end || null }))) close();
   };
-  return <ListGroup.Item ref={row as Ref<HTMLAnchorElement>} className="task-row">
+  const rowClasses = ['task-row'];
+  if (task.completed) rowClasses.push('task-row-completed');
+  if (justCompleted && task.completed) rowClasses.push('task-row-celebrate');
+  return <ListGroup.Item ref={row as Ref<HTMLAnchorElement>} className={rowClasses.join(' ')}>
     {editing ? <Form onSubmit={event => { event.preventDefault(); void save(); }} onKeyDown={onEditorKeyDown}>
       <TaskFields value={value} onChange={setValue} errors={fieldErrors} disabled={pending} editing />
       <div className="d-flex gap-2 mt-2">
@@ -71,9 +91,16 @@ export default function TaskItem({ task, editing, onEdit, onToggle, onDelete, on
       </div>
     </Form> : <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
       <div className="task-main">
-        <Form.Check type="checkbox" id={`task-${task.id}`} checked={task.completed} disabled={Boolean(pending || cooldown)}
-          onChange={() => void run(() => onToggle(task))}
-          label={<span style={{ textDecoration: task.completed ? 'line-through' : 'none' }}>{task.title}</span>} />
+        <div className="d-flex flex-wrap align-items-center gap-2">
+          <Form.Check type="checkbox" id={`task-${task.id}`} checked={task.completed} disabled={Boolean(pending || cooldown)}
+            onChange={() => void toggle()}
+            label={<span style={{ textDecoration: task.completed ? 'line-through' : 'none' }}>{task.title}</span>} />
+          {justCompleted && task.completed && (
+            <Badge pill bg="success-subtle" text="success-emphasis" className="task-complete-badge">
+              <span aria-hidden="true">✓ </span>¡Completada!
+            </Badge>
+          )}
+        </div>
         {task.description && <p className="task-description small text-muted ms-4 mb-0">{task.description}</p>}
         {(task.start_date || task.end_date) && <div className="small text-muted ms-4">
           {task.start_date && <span>Inicio: {formatDate(task.start_date)}</span>}
