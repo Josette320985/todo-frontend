@@ -9,8 +9,10 @@ import type { Task } from '../types/task';
 vi.mock('../api/tasks', () => ({ listTasks: vi.fn(), createTask: vi.fn(), updateTask: vi.fn(), removeTask: vi.fn() }));
 
 let rows: Task[];
+const uid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const task = (id: number, title: string): Task =>
   ({ id, title, description: null, completed: false, start_date: null, end_date: null });
+({ id: uid(id), title, description: null, completed: false, start_date: null, end_date: null });
 
 beforeEach(() => {
   rows = [task(1, 'Comprar pan'), task(2, 'Pagar luz')];
@@ -40,6 +42,7 @@ it('Enter saves and focus returns to the edit button of that row', async () => {
   await user.type(titleInput(), 'Comprar tortillas{Enter}');
 
   await waitFor(() => expect(api.updateTask).toHaveBeenCalledWith(1, expect.objectContaining({ title: 'Comprar tortillas' })));
+  await waitFor(() => expect(api.updateTask).toHaveBeenCalledWith(uid(1), expect.objectContaining({ title: 'Comprar tortillas' })));
   const edit = await screen.findByRole('button', { name: 'Modificar: Comprar tortillas' });
   await waitFor(() => expect(edit).toHaveFocus());
 });
