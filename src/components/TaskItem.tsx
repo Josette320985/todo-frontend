@@ -17,6 +17,9 @@ interface Props {
   task: Task; editing: boolean; onEdit: (id: number | null) => void;
   onToggle: (task: Task) => Promise<boolean>; onDelete: (id: number) => Promise<boolean>;
   onUpdate: (id: number, data: TaskUpdate) => Promise<boolean>; onError: (message: string) => void;
+  task: Task; editing: boolean; onEdit: (id: string | null) => void;
+  onToggle: (task: Task) => Promise<boolean>; onDelete: (id: string) => Promise<boolean>;
+  onUpdate: (id: string, data: TaskUpdate) => Promise<boolean>; onError: (message: string) => void;
   onCompleted?: (task: Task) => void;
   fieldErrors?: Record<string, string>; cooldown?: number;
 }

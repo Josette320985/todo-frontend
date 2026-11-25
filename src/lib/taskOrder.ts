@@ -25,6 +25,7 @@ export function compareTasks(a: Task, b: Task): number {
     return a.end_date < b.end_date ? -1 : 1;
   }
   return a.id - b.id;
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }
 
 /** Returns a new list in OPT-02 order. Only for local changes, never for a backend load. */

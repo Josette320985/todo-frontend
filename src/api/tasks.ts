@@ -16,3 +16,5 @@ export const listTasks = async ({ sortBy, order }: TaskSortParams = {}): Promise
 export const createTask = async (task: TaskCreate): Promise<Task> => (await api.post<Task>('/v1/tasks/', task)).data;
 export const updateTask = async (id: number, task: TaskUpdate): Promise<Task> => (await api.put<Task>(`/v1/tasks/${id}`, task)).data;
 export const removeTask = async (id: number): Promise<void> => { await api.delete(`/v1/tasks/${id}`); };
+export const updateTask = async (id: string, task: TaskUpdate): Promise<Task> => (await api.put<Task>(`/v1/tasks/${id}`, task)).data;
+export const removeTask = async (id: string): Promise<void> => { await api.delete(`/v1/tasks/${id}`); };
