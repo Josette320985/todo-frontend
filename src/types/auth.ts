@@ -11,6 +11,7 @@ export interface UserCreate {
  */
 export interface UserRead {
   id: number;
+  id: string;
   email: string;
 }
 

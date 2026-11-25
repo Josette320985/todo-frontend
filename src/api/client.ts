@@ -33,27 +33,31 @@ async function request<T>(method: string, path: string, body?: unknown, options:
     const response = await fetch(`/api${path}`, { method, headers, body: payload, signal, credentials: 'omit' });
     if (response.status === 401 && path.split('?')[0] !== '/v1/auth/login' && getToken() === token) {
       clearToken(); window.dispatchEvent(new Event(AUTH_UNAUTHORIZED_EVENT));
+      const response = await fetch(`/api${path}`, { method, headers, body: payload, signal, credentials: 'include' });
+      const endpoint = path.split('?')[0];
+      if (response.status === 401 && endpoint !== '/v1/auth/login' && endpoint !== '/v1/auth/me') {
+        window.dispatchEvent(new Event(AUTH_UNAUTHORIZED_EVENT));
+      }
+      const text = response.status === 204 ? '' : await response.text();
+      let data: unknown;
+      try { data = text ? JSON.parse(text) : undefined; }
+      catch { if (response.ok) throw new ApiFailure('invalid_response', response.status); }
+      if (!response.ok) {
+        const parsed = record(data);
+        throw new ApiFailure('http', response.status, parsed.detail, parsed.errors, response.headers.get('Retry-After'),
+          typeof parsed.code === 'string' ? parsed.code : undefined);
+      }
+      return { data: data as T };
+    } catch (error) {
+      if (error instanceof ApiFailure) throw error;
+      if (signal.aborted) throw new ApiFailure(options.signal?.aborted ? 'cancelled' : 'timeout');
+      throw new ApiFailure('network');
     }
-    const text = response.status === 204 ? '' : await response.text();
-    let data: unknown;
-    try { data = text ? JSON.parse(text) : undefined; }
-    catch { if (response.ok) throw new ApiFailure('invalid_response', response.status); }
-    if (!response.ok) {
-      const parsed = record(data);
-      throw new ApiFailure('http', response.status, parsed.detail, parsed.errors, response.headers.get('Retry-After'),
-        typeof parsed.code === 'string' ? parsed.code : undefined);
-    }
-    return { data: data as T };
-  } catch (error) {
-    if (error instanceof ApiFailure) throw error;
-    if (signal.aborted) throw new ApiFailure(options.signal?.aborted ? 'cancelled' : 'timeout');
-    throw new ApiFailure('network');
   }
-}
 
 export default {
-  get: <T>(path: string, options?: Options) => request<T>('GET', path, undefined, options),
-  post: <T = void>(path: string, body?: unknown, options?: Options) => request<T>('POST', path, body, options),
-  put: <T>(path: string, body?: unknown, options?: Options) => request<T>('PUT', path, body, options),
-  delete: (path: string, options?: Options) => request<void>('DELETE', path, undefined, options),
-};
+    get: <T>(path: string, options?: Options) => request<T>('GET', path, undefined, options),
+    post: <T = void>(path: string, body?: unknown, options?: Options) => request<T>('POST', path, body, options),
+    put: <T>(path: string, body?: unknown, options?: Options) => request<T>('PUT', path, body, options),
+    delete: (path: string, options?: Options) => request<void>('DELETE', path, undefined, options),
+  };
