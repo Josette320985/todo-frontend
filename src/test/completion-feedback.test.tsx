@@ -23,8 +23,6 @@ beforeEach(() => {
 
 it('shows celebratory row feedback and toast when completing a task', async () => {
   rows = [
-    { id: 1, title: 'Enviar reporte', description: null, completed: false, start_date: null, end_date: null },
-    { id: 2, title: 'Revisar PR', description: null, completed: false, start_date: null, end_date: null },
     { id: uid(1), title: 'Enviar reporte', description: null, completed: false, start_date: null, end_date: null },
     { id: uid(2), title: 'Revisar PR', description: null, completed: false, start_date: null, end_date: null },
   ];
@@ -44,7 +42,6 @@ it('shows celebratory row feedback and toast when completing a task', async () =
 });
 
 it('adds "¡Todo al día!" badge when the last pending task is completed', async () => {
-  rows = [{ id: 1, title: 'Última tarea', description: null, completed: false, start_date: null, end_date: null }];
   rows = [{ id: uid(1), title: 'Última tarea', description: null, completed: false, start_date: null, end_date: null }];
   const user = userEvent.setup();
   render(<TaskList />);
@@ -56,7 +53,6 @@ it('adds "¡Todo al día!" badge when the last pending task is completed', async
 });
 
 it('does not show celebratory feedback when completing fails and rolls back', async () => {
-  rows = [{ id: 1, title: 'Fallida', description: null, completed: false, start_date: null, end_date: null }];
   rows = [{ id: uid(1), title: 'Fallida', description: null, completed: false, start_date: null, end_date: null }];
   vi.mocked(api.updateTask).mockRejectedValueOnce({ status: 500 });
   const spy = vi.spyOn(console, 'error').mockImplementation(() => { });
@@ -74,7 +70,6 @@ it('does not show celebratory feedback when completing fails and rolls back', as
 });
 
 it('clears completed feedback when a task is marked pending again', async () => {
-  rows = [{ id: 1, title: 'Reabrir', description: null, completed: false, start_date: null, end_date: null }];
   rows = [{ id: uid(1), title: 'Reabrir', description: null, completed: false, start_date: null, end_date: null }];
   const user = userEvent.setup();
   render(<TaskList />);
