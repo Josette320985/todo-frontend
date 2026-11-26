@@ -12,7 +12,6 @@ beforeEach(() => {
   rows = [];
   vi.mocked(api.listTasks).mockImplementation(async () => [...rows]);
   vi.mocked(api.createTask).mockImplementation(async data => {
-    const task = { id: 1, title: data.title, description: null, completed: false, start_date: data.start_date ?? null, end_date: data.end_date ?? null };
     const task = { id: uid(1), title: data.title, description: null, completed: false, start_date: data.start_date ?? null, end_date: data.end_date ?? null };
     rows = [task]; return task;
   });
@@ -46,7 +45,6 @@ it('keeps a backend date validation error beside its field without a global aler
   } finally { spy.mockRestore(); }
 });
 it('removes a stale task when saving returns 404', async () => {
-  rows = [{ id: 1, title: 'Borrada', description: null, completed: false, start_date: null, end_date: null }];
   rows = [{ id: uid(1), title: 'Borrada', description: null, completed: false, start_date: null, end_date: null }];
   vi.mocked(api.updateTask).mockRejectedValueOnce({ status: 404 });
   const spy = vi.spyOn(console, 'error').mockImplementation(() => { });
@@ -82,7 +80,6 @@ it('preserves create, toggle, edit, cancel and delete', async () => {
   await screen.findByText('Aún no tienes tareas. Escribe la primera arriba.');
 });
 it('removes a stale task after a 404 from delete', async () => {
-  rows = [{ id: 1, title: 'Eliminada en otra pestaña', completed: false, description: null, start_date: null, end_date: null }];
   rows = [{ id: uid(1), title: 'Eliminada en otra pestaña', completed: false, description: null, start_date: null, end_date: null }];
   vi.mocked(api.removeTask).mockRejectedValueOnce({ status: 404 });
   const spy = vi.spyOn(console, 'error').mockImplementation(() => { });
@@ -132,7 +129,6 @@ it('uses mutation responses without reloading the whole list', async () => {
 });
 
 it('toggles instantly and rolls back when PUT fails', async () => {
-  rows = [{ id: 1, title: 'Inmediata', completed: false, description: null, start_date: null, end_date: null }];
   rows = [{ id: uid(1), title: 'Inmediata', completed: false, description: null, start_date: null, end_date: null }];
   let rejectToggle!: (reason?: unknown) => void;
   vi.mocked(api.updateTask).mockImplementationOnce(() => new Promise<Task>((_resolve, reject) => { rejectToggle = reject; }));
@@ -152,7 +148,6 @@ it('toggles instantly and rolls back when PUT fails', async () => {
 });
 
 it('restores the original task when editing fails', async () => {
-  rows = [{ id: 1, title: 'Original', completed: false, description: null, start_date: null, end_date: null }];
   rows = [{ id: uid(1), title: 'Original', completed: false, description: null, start_date: null, end_date: null }];
   let rejectEdit!: (reason?: unknown) => void;
   vi.mocked(api.updateTask).mockImplementationOnce(() => new Promise<Task>((_resolve, reject) => { rejectEdit = reject; }));
@@ -177,8 +172,6 @@ it('restores the original task when editing fails', async () => {
 
 it('restores a row when DELETE fails', async () => {
   rows = [
-    { id: 1, title: 'Primera', completed: false, description: null, start_date: null, end_date: null },
-    { id: 2, title: 'Segunda', completed: false, description: null, start_date: null, end_date: null },
     { id: uid(1), title: 'Primera', completed: false, description: null, start_date: null, end_date: null },
     { id: uid(2), title: 'Segunda', completed: false, description: null, start_date: null, end_date: null },
   ];
