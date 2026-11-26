@@ -8,8 +8,7 @@ vi.mock('../api/tasks', () => ({ listTasks: vi.fn(), createTask: vi.fn(), update
 
 const uid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const task = (id: number, title: string): Task =>
-  ({ id, title, description: null, completed: false, start_date: null, end_date: null });
-({ id: uid(id), title, description: null, completed: false, start_date: null, end_date: null });
+  ({ id: uid(id), title, description: null, completed: false, start_date: null, end_date: null });
 
 const rowIds = (): Array<string | null> =>
   screen.getAllByRole('checkbox').map(checkbox => checkbox.getAttribute('id'));
@@ -44,11 +43,9 @@ it('Deshacer restaura la tarea en su posición original y no llama al DELETE', a
   await loadList();
   try {
     await clickDelete('Pagar luz');
-    expect(rowIds()).toEqual(['task-1', 'task-3']);
     expect(rowIds()).toEqual([`task-${uid(1)}`, `task-${uid(3)}`]);
 
     fireEvent.click(screen.getByRole('button', { name: 'Deshacer eliminación de Pagar luz' }));
-    expect(rowIds()).toEqual(['task-1', 'task-2', 'task-3']);
     expect(rowIds()).toEqual([`task-${uid(1)}`, `task-${uid(2)}`, `task-${uid(3)}`]);
     expect(screen.queryByText('Tarea eliminada ·')).not.toBeInTheDocument();
 
@@ -64,17 +61,13 @@ it('cada toast controla solo su tarea cuando hay varias eliminaciones pendientes
   try {
     await clickDelete('Pagar luz');
     await clickDelete('Café');
-    expect(rowIds()).toEqual(['task-1']);
     expect(rowIds()).toEqual([`task-${uid(1)}`]);
 
     fireEvent.click(screen.getByRole('button', { name: 'Deshacer eliminación de Pagar luz' }));
-    expect(rowIds()).toEqual(['task-1', 'task-2']);
     expect(rowIds()).toEqual([`task-${uid(1)}`, `task-${uid(2)}`]);
 
     await act(async () => { vi.advanceTimersByTime(5000); });
     expect(api.removeTask).toHaveBeenCalledTimes(1);
-    expect(api.removeTask).toHaveBeenCalledWith(3);
-    expect(rowIds()).toEqual(['task-1', 'task-2']);
     expect(api.removeTask).toHaveBeenCalledWith(uid(3));
     expect(rowIds()).toEqual([`task-${uid(1)}`, `task-${uid(2)}`]);
   } finally {
@@ -87,12 +80,10 @@ it('si el DELETE expirado falla, la tarea vuelve a aparecer', async () => {
   try {
     vi.mocked(api.removeTask).mockRejectedValueOnce({ status: 500 });
     await clickDelete('Pagar luz');
-    expect(rowIds()).toEqual(['task-1', 'task-3']);
     expect(rowIds()).toEqual([`task-${uid(1)}`, `task-${uid(3)}`]);
 
     await act(async () => { vi.advanceTimersByTime(5000); });
 
-    expect(rowIds()).toEqual(['task-1', 'task-2', 'task-3']);
     expect(rowIds()).toEqual([`task-${uid(1)}`, `task-${uid(2)}`, `task-${uid(3)}`]);
     expect(screen.getByText('Pagar luz')).toBeInTheDocument();
   } finally {
