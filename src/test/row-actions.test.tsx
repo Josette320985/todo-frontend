@@ -9,8 +9,7 @@ vi.mock('../api/tasks', () => ({ listTasks: vi.fn(), createTask: vi.fn(), update
 
 const uid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const task = (id: number, title: string): Task =>
-  ({ id, title, description: null, completed: false, start_date: null, end_date: null });
-({ id: uid(id), title, description: null, completed: false, start_date: null, end_date: null });
+  ({ id: uid(id), title, description: null, completed: false, start_date: null, end_date: null });
 
 beforeEach(() => {
   vi.mocked(api.listTasks).mockReset().mockResolvedValue([task(1, 'Comprar pan'), task(2, 'Pagar luz')]);
@@ -55,7 +54,6 @@ it('hides the row now and sends DELETE when the toast expires', async () => {
     expect(api.removeTask).not.toHaveBeenCalled();
 
     await act(async () => { vi.advanceTimersByTime(5000); });
-    expect(api.removeTask).toHaveBeenCalledWith(2);
     expect(api.removeTask).toHaveBeenCalledWith(uid(2));
   } finally {
     vi.useRealTimers();
