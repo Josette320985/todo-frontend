@@ -10,7 +10,6 @@ vi.mock('../api/tasks', () => ({ listTasks: vi.fn(), createTask: vi.fn(), update
 
 const EMPTY = 'Aún no tienes tareas. Escribe la primera arriba.';
 const LOAD_ERROR = 'No pudimos cargar tus tareas';
-const task: Task = { id: 1, title: 'Comprar pan', description: null, completed: false, start_date: null, end_date: null };
 const task: Task = { id: '00000000-0000-4000-8000-000000000001', title: 'Comprar pan', description: null, completed: false, start_date: null, end_date: null };
 
 let consoleError: ReturnType<typeof vi.spyOn>;
