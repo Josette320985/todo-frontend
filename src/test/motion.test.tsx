@@ -68,7 +68,6 @@ it('does nothing where the Web Animations API is missing', async () => {
 
 it('brings the row back when the delete request fails', async () => {
   setReducedMotion(true);
-  const task: Task = { id: 3, title: 'No se borra', description: null, completed: false, start_date: null, end_date: null };
   const task: Task = { id: '00000000-0000-4000-8000-000000000003', title: 'No se borra', description: null, completed: false, start_date: null, end_date: null };
   const cancels: ReturnType<typeof vi.fn>[] = [];
   const animate = vi.fn(() => {
@@ -85,7 +84,6 @@ it('brings the row back when the delete request fails', async () => {
 
     await user.click(screen.getByRole('button', { name: 'Eliminar: No se borra' }));
 
-    await waitFor(() => expect(onDelete).toHaveBeenCalledWith(3));
     await waitFor(() => expect(onDelete).toHaveBeenCalledWith('00000000-0000-4000-8000-000000000003'));
     await waitFor(() => expect(cancels[0]).toHaveBeenCalled());
     // The animation ran before the request.
