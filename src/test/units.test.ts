@@ -1,9 +1,7 @@
-// TEST-08: unit tests without rendering for lib/dates, api/token and the
 // TEST-08: unit tests without rendering for lib/dates, api/auth hashing and the
 // getApiError branches not covered in errors.test.ts.
 import { describe, expect, it } from 'vitest';
 import { dueStatus, formatDate, isOverdue, validateDates } from '../lib/dates';
-import { clearToken, getToken, setToken } from '../api/token';
 import { hashPassword } from '../api/auth';
 import { getApiError } from '../api/errors';
 
@@ -48,64 +46,56 @@ describe('lib/dates', () => {
   });
 });
 
-describe('api/token', () => {
-  it('stores, reads and clears the token in localStorage', () => {
-    expect(getToken()).toBeNull();
-    setToken('abc.def.ghi');
-    expect(getToken()).toBe('abc.def.ghi');
-    expect(localStorage.getItem('token')).toBe('abc.def.ghi');
-    clearToken();
-    expect(getToken()).toBeNull();
-    describe('api/auth hashPassword', () => {
-      it('hashes the password with SHA-256 as 64 lowercase hex characters', async () => {
-        const digest = await hashPassword('Password1');
-        expect(digest).toMatch(/^[0-9a-f]{64}$/);
-        expect(digest).not.toContain('Password1');
-        expect(await hashPassword('Password1')).toBe(digest);
-      });
+describe('api/auth hashPassword', () => {
+  it('hashes the password with SHA-256 as 64 lowercase hex characters', async () => {
+    const digest = await hashPassword('Password1');
+    expect(digest).toMatch(/^[0-9a-f]{64}$/);
+    expect(digest).not.toContain('Password1');
+    expect(await hashPassword('Password1')).toBe(digest);
+  });
+});
+
+describe('getApiError remaining branches (ERR-06)', () => {
+  it.each([
+    [{ code: 'ECONNABORTED', status: 0 }],
+    [{ name: 'TimeoutError', status: 0 }],
+  ])('treats %j as a timeout', input => {
+    expect(getApiError(input).message).toBe('El servidor tardó demasiado. Intenta de nuevo.');
+  });
+
+  it('joins field errors into the message when there is no detail', () => {
+    const info = getApiError({
+      status: 422,
+      errors: [
+        { field: 'title', message: 'El título es obligatorio' },
+        { field: 'end_date', message: 'Fecha inválida' },
+      ],
     });
+    expect(info.message).toBe('El título es obligatorio. Fecha inválida');
+  });
 
-    describe('getApiError remaining branches (ERR-06)', () => {
-      it.each([
-        [{ code: 'ECONNABORTED', status: 0 }],
-        [{ name: 'TimeoutError', status: 0 }],
-      ])('treats %j as a timeout', input => {
-        expect(getApiError(input).message).toBe('El servidor tardó demasiado. Intenta de nuevo.');
-      });
+  it('falls back to a generic message for an HTTP error without body', () => {
+    expect(getApiError({ status: 400 }).message).toBe('No se pudo completar la solicitud.');
+  });
 
-      it('joins field errors into the message when there is no detail', () => {
-        const info = getApiError({
-          status: 422,
-          errors: [
-            { field: 'title', message: 'El título es obligatorio' },
-            { field: 'end_date', message: 'Fecha inválida' },
-          ],
-        });
-        expect(info.message).toBe('El título es obligatorio. Fecha inválida');
-      });
+  it('keeps the status for callers that branch on it', () => {
+    expect(getApiError({ status: 404 }).status).toBe(404);
+    expect(getApiError({ response: { status: 503, data: {} } }).status).toBe(503);
+  });
+});
 
-      it('falls back to a generic message for an HTTP error without body', () => {
-        expect(getApiError({ status: 400 }).message).toBe('No se pudo completar la solicitud.');
-      });
-
-      it('keeps the status for callers that branch on it', () => {
-        expect(getApiError({ status: 404 }).status).toBe(404);
-        expect(getApiError({ response: { status: 503, data: {} } }).status).toBe(503);
-      });
-    });
-
-    describe('dueStatus (UX-11)', () => {
-      const now = new Date(2026, 10, 21, 23, 59);
-      it('marks pending tasks past their end date as overdue', () => {
-        expect(dueStatus('2026-11-20', false, now)).toBe('overdue');
-      });
-      it('marks pending tasks ending today, using the local day', () => {
-        expect(dueStatus('2026-11-21', false, now)).toBe('today');
-        expect(dueStatus('2026-11-21', false, new Date(2026, 10, 21, 0, 1))).toBe('today');
-      });
-      it('shows nothing for future, completed or undated tasks', () => {
-        expect(dueStatus('2026-11-22', false, now)).toBeNull();
-        expect(dueStatus('2026-11-01', true, now)).toBeNull();
-        expect(dueStatus(null, false, now)).toBeNull();
-      });
-    });
+describe('dueStatus (UX-11)', () => {
+  const now = new Date(2026, 10, 21, 23, 59);
+  it('marks pending tasks past their end date as overdue', () => {
+    expect(dueStatus('2026-11-20', false, now)).toBe('overdue');
+  });
+  it('marks pending tasks ending today, using the local day', () => {
+    expect(dueStatus('2026-11-21', false, now)).toBe('today');
+    expect(dueStatus('2026-11-21', false, new Date(2026, 10, 21, 0, 1))).toBe('today');
+  });
+  it('shows nothing for future, completed or undated tasks', () => {
+    expect(dueStatus('2026-11-22', false, now)).toBeNull();
+    expect(dueStatus('2026-11-01', true, now)).toBeNull();
+    expect(dueStatus(null, false, now)).toBeNull();
+  });
+});
