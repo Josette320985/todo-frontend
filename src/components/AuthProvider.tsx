@@ -1,21 +1,21 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as auth from '../api/auth';
 import { AUTH_UNAUTHORIZED_EVENT } from '../api/client';
-import { getToken } from '../api/token';
 import { AuthContext, type AuthContextValue } from '../hooks/useAuth';
 import type { UserCreate } from '../types/auth';
 
 /**
- * Owns the session (ARQ-08): whether there is a token, who the user is and
- * why the session ended. The token itself is stored by api/auth.
+ * Owns the session (ARQ-08): whether there is an active HttpOnly cookie session,
+ * who the user is and why the session ended.
  */
 export default function AuthProvider({ children }: { children: ReactNode }) {
-  const [isLoggedIn, setLoggedIn] = useState<boolean>(() => Boolean(getToken()));
+  const [isLoggedIn, setLoggedIn] = useState<boolean>(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [transitionPending, setTransitionPending] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const initialCheckDone = useRef(false);
 
-  // The API client clears the token and fires this event on a 401.
+  // The API client fires this event when a protected request returns 401.
   useEffect(() => {
     const handleUnauthorized = (): void => {
       setLoggedIn(false);
@@ -27,14 +27,24 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
   }, []);
 
+  // Probe the HttpOnly cookie session on mount, and load the profile after login.
   useEffect(() => {
-    if (!isLoggedIn) return;
+    if (!isLoggedIn && initialCheckDone.current) return;
+    if (isLoggedIn && userEmail !== null) return;
+    initialCheckDone.current = true;
     let active = true;
     auth.getCurrentUser()
-      .then(data => { if (active) setUserEmail(data.email); })
-      .catch(() => { if (active) setUserEmail(''); });
+      .then(data => {
+        if (!active) return;
+        setLoggedIn(true);
+        setUserEmail(data.email);
+      })
+      .catch(() => {
+        if (!active) return;
+        if (isLoggedIn) setUserEmail('');
+      });
     return () => { active = false; };
-  }, [isLoggedIn]);
+  }, [isLoggedIn, userEmail]);
 
   const login = useCallback(async (email: string, password: string) => {
     setTransitionPending(true);

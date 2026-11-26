@@ -10,7 +10,7 @@ export interface UserCreate {
  * User representation returned by the backend API (`UserRead` schema).
  */
 export interface UserRead {
-  id: number;
+  id: string;
   email: string;
 }
 

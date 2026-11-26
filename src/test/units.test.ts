@@ -1,8 +1,8 @@
-// TEST-08: unit tests without rendering for lib/dates, api/token and the
+// TEST-08: unit tests without rendering for lib/dates, api/auth hashing and the
 // getApiError branches not covered in errors.test.ts.
 import { describe, expect, it } from 'vitest';
 import { dueStatus, formatDate, isOverdue, validateDates } from '../lib/dates';
-import { clearToken, getToken, setToken } from '../api/token';
+import { hashPassword } from '../api/auth';
 import { getApiError } from '../api/errors';
 
 describe('lib/dates', () => {
@@ -46,14 +46,12 @@ describe('lib/dates', () => {
   });
 });
 
-describe('api/token', () => {
-  it('stores, reads and clears the token in localStorage', () => {
-    expect(getToken()).toBeNull();
-    setToken('abc.def.ghi');
-    expect(getToken()).toBe('abc.def.ghi');
-    expect(localStorage.getItem('token')).toBe('abc.def.ghi');
-    clearToken();
-    expect(getToken()).toBeNull();
+describe('api/auth hashPassword', () => {
+  it('hashes the password with SHA-256 as 64 lowercase hex characters', async () => {
+    const digest = await hashPassword('Password1');
+    expect(digest).toMatch(/^[0-9a-f]{64}$/);
+    expect(digest).not.toContain('Password1');
+    expect(await hashPassword('Password1')).toBe(digest);
   });
 });
 

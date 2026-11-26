@@ -30,13 +30,13 @@ it('sends a single login request on a double click (UX-02)', async () => {
 });
 
 it('toggles a task when its text is clicked (UX-09)', async () => {
-  const task: Task = { id: 7, title: 'Pagar luz', description: null, completed: false, start_date: null, end_date: null };
+  const task: Task = { id: '00000000-0000-4000-8000-000000000007', title: 'Pagar luz', description: null, completed: false, start_date: null, end_date: null };
   const onToggle = vi.fn().mockResolvedValue(true);
   const user = userEvent.setup();
   render(<ListGroup><TaskItem task={task} editing={false} onEdit={vi.fn()} onToggle={onToggle}
     onDelete={vi.fn()} onUpdate={vi.fn()} onError={vi.fn()} /></ListGroup>);
 
-  expect(screen.getByRole('checkbox', { name: 'Pagar luz' })).toHaveAttribute('id', 'task-7');
+  expect(screen.getByRole('checkbox', { name: 'Pagar luz' })).toHaveAttribute('id', 'task-00000000-0000-4000-8000-000000000007');
   await user.click(screen.getByText('Pagar luz'));
 
   expect(onToggle).toHaveBeenCalledWith(task);
@@ -53,7 +53,7 @@ it('labels every login field and asks the browser for the right autofill (UX-09)
 
 it('sends a single register request on a double click and shows its progress (UX-02)', async () => {
   let finish!: () => void;
-  vi.mocked(auth.register).mockReturnValue(new Promise(resolve => { finish = () => resolve({ id: 1, email: 'new@example.com' } as never); }));
+  vi.mocked(auth.register).mockReturnValue(new Promise(resolve => { finish = () => resolve({ id: '00000000-0000-4000-8000-000000000001', email: 'new@example.com' } as never); }));
   vi.mocked(auth.login).mockResolvedValue();
   const user = userEvent.setup();
   renderWithAuth(<LoginForm />);

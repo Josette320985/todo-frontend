@@ -6,7 +6,7 @@ import type { Task } from '../src/types/task';
 
 // Isolated fixture: never sends requests, reads credentials or seeds a real DB.
 const tasks: Task[] = Array.from({ length: 1000 }, (_, index) => ({
-  id: index + 1,
+  id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
   title: `Tarea de rendimiento ${String(index + 1).padStart(4, '0')}`,
   description: null,
   completed: index % 3 === 0,

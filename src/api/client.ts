@@ -1,4 +1,3 @@
-import { getToken, clearToken } from './token';
 import { record } from './errors';
 
 export const AUTH_UNAUTHORIZED_EVENT = 'auth:unauthorized' as const;
@@ -17,9 +16,7 @@ export class ApiFailure extends Error {
 
 async function request<T>(method: string, path: string, body?: unknown, options: Options = {}): Promise<{ data: T }> {
   if (!path.startsWith('/v1/') || path.includes('://')) throw new Error('Invalid API path');
-  const token = getToken();
   const headers = new Headers();
-  if (token) headers.set('Authorization', `Bearer ${token}`);
   let payload: BodyInit | undefined;
   if (body instanceof URLSearchParams) {
     headers.set('Content-Type', 'application/x-www-form-urlencoded;charset=UTF-8');
@@ -30,9 +27,10 @@ async function request<T>(method: string, path: string, body?: unknown, options:
   const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
   const signal = options.signal ? AbortSignal.any([timeout, options.signal]) : timeout;
   try {
-    const response = await fetch(`/api${path}`, { method, headers, body: payload, signal, credentials: 'omit' });
-    if (response.status === 401 && path.split('?')[0] !== '/v1/auth/login' && getToken() === token) {
-      clearToken(); window.dispatchEvent(new Event(AUTH_UNAUTHORIZED_EVENT));
+    const response = await fetch(`/api${path}`, { method, headers, body: payload, signal, credentials: 'include' });
+    const endpoint = path.split('?')[0];
+    if (response.status === 401 && endpoint !== '/v1/auth/login' && endpoint !== '/v1/auth/me') {
+      window.dispatchEvent(new Event(AUTH_UNAUTHORIZED_EVENT));
     }
     const text = response.status === 204 ? '' : await response.text();
     let data: unknown;

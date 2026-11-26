@@ -106,3 +106,23 @@ it('renders backend fields and handles Retry-After', async () => {
   expect(screen.getByRole('button', { name: 'Espera 1 s' })).toBeDisabled();
   await waitFor(() => expect(screen.getByRole('button', { name: 'Entrar' })).toBeEnabled(), { timeout: 2000 });
 });
+
+it('enforces maxLength and updates visible character counters on login and task forms', async () => {
+  const user = userEvent.setup();
+  const { unmount } = renderWithAuth(<LoginForm />);
+  expect(screen.getByLabelText('Email')).toHaveAttribute('maxlength', '2048');
+  expect(screen.getByLabelText('Contraseña')).toHaveAttribute('maxlength', '72');
+  expect(screen.getByText('0/2048')).toBeInTheDocument();
+  expect(screen.getByText('0/72')).toBeInTheDocument();
+
+  await user.type(screen.getByLabelText('Email'), 'a@b.co');
+  await user.type(screen.getByLabelText('Contraseña'), 'Secret12');
+  expect(screen.getByText('6/2048')).toBeInTheDocument();
+  expect(screen.getByText('8/72')).toBeInTheDocument();
+  unmount();
+
+  render(<TaskForm onCreate={vi.fn()} onError={vi.fn()} />);
+  expect(screen.getByText('0/200')).toBeInTheDocument();
+  await user.type(screen.getByPlaceholderText('Nueva tarea...'), 'Hola');
+  expect(screen.getByText('4/200')).toBeInTheDocument();
+});

@@ -2,7 +2,7 @@
  * Task representation returned by the backend API (`TaskRead` schema).
  */
 export interface Task {
-  id: number;
+  id: string;
   title: string;
   description: string | null;
   completed: boolean;

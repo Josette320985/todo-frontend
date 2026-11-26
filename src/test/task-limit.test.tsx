@@ -11,7 +11,7 @@ import type { Task } from '../types/task';
 vi.mock('../api/tasks', () => ({ listTasks: vi.fn(), createTask: vi.fn(), updateTask: vi.fn(), removeTask: vi.fn() }));
 
 const tasks = (count: number): Task[] => Array.from({ length: count }, (_, i) =>
-  ({ id: i + 1, title: `Tarea ${i + 1}`, description: null, completed: false, start_date: null, end_date: null }));
+  ({ id: `00000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`, title: `Tarea ${i + 1}`, description: null, completed: false, start_date: null, end_date: null }));
 
 beforeEach(() => {
   vi.mocked(api.listTasks).mockReset();
@@ -46,7 +46,7 @@ it('below the cap the form works and shows no warning', async () => {
 
 it('a 409 from the backend shows the same clear message (e.g. another tab added tasks)', async () => {
   const user = userEvent.setup();
-  const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  const spy = vi.spyOn(console, 'error').mockImplementation(() => { });
   try {
     vi.mocked(api.listTasks).mockResolvedValue(tasks(3));
     vi.mocked(api.createTask).mockRejectedValueOnce({

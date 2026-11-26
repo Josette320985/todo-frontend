@@ -43,7 +43,7 @@ export function useTasks(sort: TaskSortParams = {}) {
   const [status, setStatus] = useState<ListStatus>('loading');
   const [error, setErrorMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [errorId, setErrorId] = useState<number | undefined>();
+  const [errorId, setErrorId] = useState<string | undefined>();
   const { remaining, start } = useCooldown();
   const setError = useCallback((message: string) => { setErrorMessage(message); setFieldErrors({}); }, []);
   const mounted = useRef(false);
@@ -77,7 +77,7 @@ export function useTasks(sort: TaskSortParams = {}) {
     void load();
     return () => { mounted.current = false; };
   }, [load]);
-  const reportError = useCallback((err: unknown, id?: number, visibleFields: string[] = []): false => {
+  const reportError = useCallback((err: unknown, id?: string, visibleFields: string[] = []): false => {
     if (!mounted.current) return false;
     const info = getApiError(err);
     logApiError('Error modificando tarea', err);
@@ -98,7 +98,7 @@ export function useTasks(sort: TaskSortParams = {}) {
       return reportError(err, undefined, ['title', 'start_date', 'end_date']);
     }
   }, [reportError, setError, updateList]);
-  const update = useCallback(async (id: number, data: TaskUpdate): Promise<boolean> => {
+  const update = useCallback(async (id: string, data: TaskUpdate): Promise<boolean> => {
     const previous = tasksRef.current.find(task => task.id === id);
     if (!previous) return reportError({ status: 404 }, id);
     updateList(current => current.map(task => task.id === id ? applyUpdate(task, data) : task));
@@ -118,7 +118,7 @@ export function useTasks(sort: TaskSortParams = {}) {
       return reportError(err, id, data.title === undefined ? [] : ['title', 'description', 'start_date', 'end_date']);
     }
   }, [reportError, setError, updateList]);
-  const remove = useCallback(async (id: number): Promise<boolean> => {
+  const remove = useCallback(async (id: string): Promise<boolean> => {
     const previousIndex = tasksRef.current.findIndex(task => task.id === id);
     if (previousIndex < 0) return reportError({ status: 404 }, id);
     const previous = tasksRef.current[previousIndex];

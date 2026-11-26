@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
 
-// Explicit opt-in: creates synthetic data on a dedicated local backend only.
+// Standalone HTTP and Vite proxy integration suite powered by Vitest.
 export default defineConfig({
-  test: { environment: 'node', include: ['integration/*.integration.ts'], fileParallelism: false },
+  test: { environment: 'node', include: ['integration/*.integration.ts'], fileParallelism: false, clearMocks: true },
 });
