@@ -11,8 +11,7 @@ vi.mock('../api/tasks', () => ({ listTasks: vi.fn(), createTask: vi.fn(), update
 
 const uid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const task = (id: number, title: string, completed = false, end_date: string | null = null): Task =>
-  ({ id, title, description: null, completed, start_date: null, end_date });
-({ id: uid(id), title, description: null, completed, start_date: null, end_date });
+  ({ id: uid(id), title, description: null, completed, start_date: null, end_date });
 
 let rows: Task[];
 
@@ -35,13 +34,11 @@ it('moves a task that goes back to pending to its place, without reloading', asy
   const user = userEvent.setup();
   render(<TaskList />);
   await screen.findByText('B');
-  expect(order()).toEqual(['task-2', 'task-1']);
   expect(order()).toEqual([`task-${uid(2)}`, `task-${uid(1)}`]);
 
   await user.click(screen.getByRole('checkbox', { name: 'A' }));
 
   // A (id 1) is pending again and sorts before B (id 2), like the backend would.
-  await waitFor(() => expect(order()).toEqual(['task-1', 'task-2']));
   await waitFor(() => expect(order()).toEqual([`task-${uid(1)}`, `task-${uid(2)}`]));
   expect(api.listTasks).toHaveBeenCalledTimes(1);
 });
@@ -54,7 +51,6 @@ it('sends a task that gets completed below the pending ones', async () => {
 
   await user.click(screen.getByRole('checkbox', { name: 'A' }));
 
-  await waitFor(() => expect(order()).toEqual(['task-2', 'task-1']));
   await waitFor(() => expect(order()).toEqual([`task-${uid(2)}`, `task-${uid(1)}`]));
 });
 
@@ -66,7 +62,6 @@ it('puts a task that returns to pending by its due date, not at the end of the g
 
   await user.click(screen.getByRole('checkbox', { name: 'Pronto' }));
 
-  await waitFor(() => expect(order()).toEqual(['task-1', 'task-2', 'task-3']));
   await waitFor(() => expect(order()).toEqual([`task-${uid(1)}`, `task-${uid(2)}`, `task-${uid(3)}`]));
 });
 
@@ -87,7 +82,6 @@ it('sortPendingFirst mirrors the backend order and does not mutate its input', (
   ];
   const snapshot = list.map(item => item.id);
 
-  expect(sortPendingFirst(list).map(item => item.id)).toEqual([2, 3, 4, 5, 1]);
   expect(sortPendingFirst(list).map(item => item.id)).toEqual([2, 3, 4, 5, 1].map(uid));
   expect(list.map(item => item.id)).toEqual(snapshot);
   expect(compareTasks(list[0], list[0])).toBe(0);
