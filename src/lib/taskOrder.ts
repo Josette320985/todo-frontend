@@ -24,7 +24,6 @@ export function compareTasks(a: Task, b: Task): number {
     if (b.end_date === null) return -1;
     return a.end_date < b.end_date ? -1 : 1;
   }
-  return a.id - b.id;
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }
 
