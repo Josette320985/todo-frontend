@@ -14,9 +14,6 @@ function TrashIcon() {
   return <svg {...iconProps}><path d="M6 1.5h4a.5.5 0 0 1 .5.5v1H14a.5.5 0 0 1 0 1h-.6l-.76 9.9a1.5 1.5 0 0 1-1.5 1.35H4.86a1.5 1.5 0 0 1-1.5-1.35L2.6 4H2a.5.5 0 0 1 0-1h3.5V2a.5.5 0 0 1 .5-.5M6.5 3h3v-.5h-3zM3.6 4l.75 9.82a.5.5 0 0 0 .5.43h6.3a.5.5 0 0 0 .5-.43L12.4 4zm2.9 1.5a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5" /></svg>;
 }
 interface Props {
-  task: Task; editing: boolean; onEdit: (id: number | null) => void;
-  onToggle: (task: Task) => Promise<boolean>; onDelete: (id: number) => Promise<boolean>;
-  onUpdate: (id: number, data: TaskUpdate) => Promise<boolean>; onError: (message: string) => void;
   task: Task; editing: boolean; onEdit: (id: string | null) => void;
   onToggle: (task: Task) => Promise<boolean>; onDelete: (id: string) => Promise<boolean>;
   onUpdate: (id: string, data: TaskUpdate) => Promise<boolean>; onError: (message: string) => void;
